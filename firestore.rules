@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Auth helper
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // User Rules
+    match /users/{userId} {
+      // Users can manage their own data
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      
+      // Other users can read basic profile info (exclude photoUrl by default if possible, 
+      // but security rules are all-or-nothing for a document. 
+      // Better to check if there's a mutual reveal connection)
+      allow get: if isSignedIn() && (
+        request.auth.uid == userId || 
+        exists(/databases/$(database)/documents/connections/$(request.auth.uid + "_" + userId)) ||
+        exists(/databases/$(database)/documents/connections/$(userId + "_" + request.auth.uid))
+        // Note: Real mutual reveal check would be more complex due to rules nature.
+        // For now, simpler: allow read if connection exists or is owner.
+      );
+
+      match /soul/data {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        allow read: if isSignedIn();
+      }
+    }
+
+    // Post Rules
+    match /posts/{postId} {
+    // Both users involved can read the connection
+    // Only the sender can create
+    // Either user can update status
+    match /connections/{connectionId} {
+      allow read: if request.auth != null
+                  && (resource.data.fromUserId == request.auth.uid
+                      || resource.data.toUserId == request.auth.uid);
+      allow create: if request.auth != null
+                    && request.resource.data.fromUserId == request.auth.uid;
+      allow update: if request.auth != null
+                    && (resource.data.fromUserId == request.auth.uid
+                        || resource.data.toUserId == request.auth.uid);
+    }
+  }
+}
