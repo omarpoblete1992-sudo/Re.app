@@ -95,7 +95,7 @@ function FeedContent() {
       {user && (
         <CreatePostForm
           feedType={type}
-          onPostCreated={async () => {
+          onSuccess={async () => {
             const data = await getPostsByFeed(type)
             setPosts(data)
           }}
@@ -114,6 +114,7 @@ function FeedContent() {
                 key={post.id}
                 user={{
                   id: post.id,
+                  userId: post.userId,
                   nickname: post.nickname,
                   bio: post.bio,
                   authors: post.authors,

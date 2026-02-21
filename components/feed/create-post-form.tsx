@@ -1,159 +1,117 @@
 "use client"
 
 import * as React from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { createPost } from "@/lib/firestore"
 import { useAuth } from "@/lib/auth-context"
-import { createPost, getUserProfile } from "@/lib/firestore"
-import { BASE_CHAR_LIMIT } from "@/lib/post-limits"
-import { Send, PenLine } from "lucide-react"
+
+const postSchema = z.object({
+    nickname: z.string().min(2, "Mínimo 2 caracteres").max(20, "Máximo 20 caracteres"),
+    bio: z.string().min(10, "Mínimo 10 caracteres").max(1000, "Máximo 1000 caracteres"),
+    authors: z.string().optional(),
+    credo: z.string().optional(),
+})
+
+type PostFormValues = z.infer<typeof postSchema>
 
 interface CreatePostFormProps {
     feedType: string
-    onPostCreated: () => void
+    onSuccess?: () => void
 }
 
-export function CreatePostForm({ feedType, onPostCreated }: CreatePostFormProps) {
+export function CreatePostForm({ feedType, onSuccess }: CreatePostFormProps) {
     const { user } = useAuth()
-    const [isOpen, setIsOpen] = React.useState(false)
-    const [bio, setBio] = React.useState("")
-    const [authors, setAuthors] = React.useState("")
-    const [credo, setCredo] = React.useState("")
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [error, setError] = React.useState("")
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors, isSubmitting },
+    } = useForm<PostFormValues>({
+        resolver: zodResolver(postSchema),
+        defaultValues: {
+            nickname: "",
+            bio: "",
+            authors: "",
+            credo: "",
+        },
+    })
 
-    const charCount = bio.length
-    const isOverLimit = charCount > BASE_CHAR_LIMIT
-
-    if (!isOpen) {
-        return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className="w-full mb-6 p-4 border border-dashed border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors text-sm flex items-center justify-center gap-2"
-            >
-                <PenLine className="h-4 w-4" />
-                Compartir un pensamiento...
-            </button>
-        )
-    }
-
-    async function handleSubmit() {
-        if (!user || !bio.trim()) return
-        if (isOverLimit) {
-            setError(`Tu texto excede los ${BASE_CHAR_LIMIT} caracteres permitidos.`)
-            return
-        }
-
-        setIsSubmitting(true)
-        setError("")
-
+    const onSubmit = async (data: PostFormValues) => {
+        if (!user) return
         try {
-            // Get user profile for nickname, gender, etc.
-            const profile = await getUserProfile(user.uid)
-            const nickname = profile?.nickname || user.displayName || "Alma Anónima"
-            const gender = profile?.gender || ""
-            const interestedIn = profile?.interestedIn || ""
-            const birthDate = profile?.birthDate || ""
-
-            // Calculate age
-            let age: number | undefined
-            if (birthDate) {
-                const birth = new Date(birthDate)
-                const today = new Date()
-                age = today.getFullYear() - birth.getFullYear()
-                const m = today.getMonth() - birth.getMonth()
-                if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-                    age--
-                }
-            }
-
             await createPost({
                 userId: user.uid,
-                nickname,
-                bio: bio.trim(),
-                authors: authors.trim(),
-                credo: credo.trim(),
+                nickname: data.nickname,
+                bio: data.bio,
+                authors: data.authors,
+                credo: data.credo,
                 feed: feedType,
-                age: age || 0,
-                gender,
-                interestedIn,
             })
-
-            setBio("")
-            setAuthors("")
-            setCredo("")
-            setIsOpen(false)
-            onPostCreated()
-        } catch (err: any) {
-            console.error("Error creating post:", err)
-            // Specific check for index error which is common in Firestore
-            if (err.message && err.message.includes("index")) {
-                setError("Error de base de datos: Falta crear un índice compuesto. Revisa la consola del navegador.")
-            } else {
-                setError(`Error al publicar: ${err.message || "Intenta de nuevo."}`)
-            }
-        } finally {
-            setIsSubmitting(false)
+            reset()
+            onSuccess?.()
+        } catch (err: unknown) {
+            const error = err as Error
+            console.error("Error creating post:", error)
         }
     }
 
     return (
-        <Card className="mb-6">
-            <CardContent className="pt-6 space-y-4">
-                {error && (
-                    <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-md">
-                        {error}
+        <Card className="mb-8 border-primary/20 bg-primary/5">
+            <CardContent className="pt-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Nombre / Pseudónimo</label>
+                            <Input
+                                {...register("nickname")}
+                                placeholder="¿Cómo quieres ser recordado?"
+                                className="bg-background/50"
+                            />
+                            {errors.nickname && (
+                                <p className="text-xs text-destructive">{errors.nickname.message}</p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Tu Credo (opcional)</label>
+                            <Input
+                                {...register("credo")}
+                                placeholder="Una frase que defina tu alma"
+                                className="bg-background/50"
+                            />
+                        </div>
                     </div>
-                )}
 
-                <div>
-                    <textarea
-                        value={bio}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBio(e.target.value)}
-                        placeholder="Escribe lo que tu alma quiere decir..."
-                        className="w-full min-h-[120px] p-3 bg-transparent border border-border rounded-md text-foreground placeholder-muted-foreground resize-y focus:outline-none focus:ring-2 focus:ring-ring font-serif"
-                    />
-                    <div className={`text-xs text-right mt-1 ${isOverLimit ? "text-red-500 font-bold" : "text-muted-foreground"}`}>
-                        {charCount}/{BASE_CHAR_LIMIT}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Tu Esencia (Bio / Pensamiento)</label>
+                        <Textarea
+                            {...register("bio")}
+                            placeholder="Escribe lo que realmente importa. Sin filtros, sin imágenes."
+                            className="min-h-[120px] bg-background/50 resize-none"
+                        />
+                        {errors.bio && (
+                            <p className="text-xs text-destructive">{errors.bio.message}</p>
+                        )}
                     </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <input
-                        value={authors}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAuthors(e.target.value)}
-                        placeholder="Autores que te inspiran (opcional)"
-                        className="w-full p-2 bg-transparent border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                    <input
-                        value={credo}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCredo(e.target.value)}
-                        placeholder="Tu credo (opcional)"
-                        className="w-full p-2 bg-transparent border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Influencias / Autores (opcional)</label>
+                        <Input
+                            {...register("authors")}
+                            placeholder="Ej: Nietzsche, Cortázar, Tu abuela..."
+                            className="bg-background/50"
+                        />
+                    </div>
 
-                <div className="flex justify-between items-center">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                            setIsOpen(false)
-                            setBio("")
-                            setAuthors("")
-                            setCredo("")
-                        }}
-                    >
-                        Cancelar
+                    <Button type="submit" disabled={isSubmitting} className="w-full">
+                        {isSubmitting ? "Publicando..." : "Publicar mi esencia"}
                     </Button>
-                    <Button
-                        size="sm"
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || !bio.trim() || isOverLimit}
-                    >
-                        {isSubmitting ? "Publicando..." : <React.Fragment><Send className="mr-2 h-4 w-4" /> Publicar</React.Fragment>}
-                    </Button>
-                </div>
+                </form>
             </CardContent>
         </Card>
     )

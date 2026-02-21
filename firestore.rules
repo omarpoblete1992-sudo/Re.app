@@ -32,18 +32,34 @@ service cloud.firestore {
 
     // Post Rules
     match /posts/{postId} {
-    // Both users involved can read the connection
-    // Only the sender can create
-    // Either user can update status
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+      );
+    }
+
+    // Connection Rules
     match /connections/{connectionId} {
-      allow read: if request.auth != null
-                  && (resource.data.fromUserId == request.auth.uid
-                      || resource.data.toUserId == request.auth.uid);
-      allow create: if request.auth != null
-                    && request.resource.data.fromUserId == request.auth.uid;
-      allow update: if request.auth != null
-                    && (resource.data.fromUserId == request.auth.uid
-                        || resource.data.toUserId == request.auth.uid);
+      allow read: if isSignedIn() && (
+        resource.data.fromUserId == request.auth.uid || 
+        resource.data.toUserId == request.auth.uid
+      );
+      allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.fromUserId == request.auth.uid || 
+        resource.data.toUserId == request.auth.uid
+      );
+
+      // Subcollection: Messages
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/connections/$(connectionId)).data.fromUserId == request.auth.uid ||
+          get(/databases/$(database)/documents/connections/$(connectionId)).data.toUserId == request.auth.uid
+        );
+        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      }
     }
   }
 }

@@ -1,172 +1,155 @@
 "use client"
 
 import * as React from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ArrowLeft, Send, User, Lock, Eye } from "lucide-react"
-import Link from "next/link"
-import { useAuth } from "@/lib/auth-context"
+import { useParams, useRouter } from "next/navigation"
 import { db } from "@/lib/firebase"
 import { sendMessage, toggleIdentityReveal, Connection, Message, getUserProfile, UserProfile } from "@/lib/firestore"
 import { collection, onSnapshot, query, orderBy, doc } from "firebase/firestore"
+import Image from "next/image"
+import { User, Send, Shield, Info, Heart } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { useAuth } from "@/lib/auth-context"
 
-export default function ChatDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id: connectionId } = React.use(params)
+export default function ChatDetailPage() {
+    const params = useParams()
+    const router = useRouter()
+    const connectionId = params.id as string
+
     const { user } = useAuth()
     const [messages, setMessages] = React.useState<Message[]>([])
+    const [inputText, setInputText] = React.useState("")
     const [connection, setConnection] = React.useState<Connection | null>(null)
     const [otherUser, setOtherUser] = React.useState<UserProfile | null>(null)
-    const [newMessage, setNewMessage] = React.useState("")
     const [loading, setLoading] = React.useState(true)
 
     React.useEffect(() => {
-        if (!user) return
+        if (!user || !connectionId) return
 
-        // Subscribe to connection data
         const connRef = doc(db, "connections", connectionId)
-        const unsubConn = onSnapshot(connRef, (snap) => {
-            if (snap.exists()) {
-                const connData = { id: snap.id, ...snap.data() } as Connection
-                setConnection(connData)
-
-                // Fetch other user profile
-                const otherUid = connData.fromUserId === user.uid ? connData.toUserId : connData.fromUserId
-                getUserProfile(otherUid).then((profile) => {
-                    if (profile) setOtherUser(profile)
-                })
+        const unsubConn = onSnapshot(connRef, async (snap) => {
+            if (!snap.exists()) {
+                router.push("/app/chat")
+                return
             }
+            const data = { id: snap.id, ...snap.data() } as Connection
+            setConnection(data)
+
+            const otherUid = data.fromUserId === user.uid ? data.toUserId : data.fromUserId
+            const profile = await getUserProfile(otherUid)
+            setOtherUser(profile)
+            setLoading(false)
         })
 
-        // Subscribe to messages
-        const messagesRef = collection(db, "connections", connectionId, "messages")
-        const q = query(messagesRef, orderBy("createdAt", "asc"))
+        const msgsRef = collection(db, "connections", connectionId, "messages")
+        const q = query(msgsRef, orderBy("createdAt", "asc"))
         const unsubMsgs = onSnapshot(q, (snap) => {
-            const msgs = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })) as Message[]
+            const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message))
             setMessages(msgs)
-            setLoading(false)
         })
 
         return () => {
             unsubConn()
             unsubMsgs()
         }
-    }, [user, connectionId])
+    }, [user, connectionId, router])
 
-    const handleSend = async () => {
-        if (!user || !newMessage.trim()) return
-        try {
-            const text = newMessage
-            setNewMessage("")
-            await sendMessage(connectionId, user.uid, text)
-        } catch (err) {
-            console.error("Error sending message:", err)
-        }
+    const handleSend = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!inputText.trim() || !user || !connectionId) return
+
+        const text = inputText.trim()
+        setInputText("")
+        await sendMessage(connectionId, user.uid, text)
     }
 
-    if (loading) return <div className="p-8 text-center text-muted-foreground">Abriendo conexión...</div>
-    if (!connection) return <div className="p-8 text-center text-red-500">No se encontró la conexión.</div>
+    const handleToggleReveal = async () => {
+        if (!user || !connectionId) return
+        await toggleIdentityReveal(connectionId, user.uid)
+    }
 
-    const interactionTarget = 30
-    const count = connection.interactionCount || 0
-    const progress = Math.min((count / interactionTarget) * 100, 100)
-    const canReveal = count >= interactionTarget
+    if (loading) return <div className="p-8 text-center italic">Cargando conversación...</div>
 
-    // Check if both users revealed
-    const amRevealed = connection.revealedUsers?.includes(user?.uid || "")
-    const otherRevealed = connection.revealedUsers?.find(id => id !== user?.uid)
-    const mutualReveal = amRevealed && otherRevealed
+    const isRevealed = (connection?.revealedUsers?.includes(user?.uid || "") && connection?.revealedUsers?.length === 2) || false
 
     return (
-        <div className="flex flex-col h-[calc(100vh-100px)] max-w-2xl mx-auto bg-background">
-            <div className="flex items-center justify-between py-4 border-b px-4">
-                <div className="flex items-center gap-4">
-                    <Link href="/app/chat">
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border/50 shadow-sm">
-                            {mutualReveal && otherUser?.photoUrl ? (
-                                <img src={otherUser.photoUrl} alt="Avatar" className="h-full w-full object-cover" />
-                            ) : (
-                                <User className="h-5 w-5 text-muted-foreground" />
-                            )}
-                        </div>
-                        <div>
-                            <h2 className="font-semibold text-sm font-serif">{otherUser?.nickname || "Alma conectada"}</h2>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                                {mutualReveal ? "Identidad Revelada" : "Enlace Anónimo"}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-1">
-                    <div className="text-[10px] text-muted-foreground font-medium">Interacción: {count}/{interactionTarget}</div>
-                    <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-primary transition-all duration-700 ease-out shadow-[0_0_8px_rgba(var(--primary),0.5)]"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Reveal Zone */}
-            {canReveal && !mutualReveal && (
-                <div className="bg-muted/30 p-4 border-b text-center space-y-2 animate-in fade-in slide-in-from-top-2 duration-500">
-                    <p className="text-xs text-muted-foreground font-medium">
-                        ¡Han interactuado lo suficiente! ¿Quieres revelar tu identidad física?
-                    </p>
-                    <Button
-                        size="sm"
-                        variant={amRevealed ? "outline" : "default"}
-                        className="rounded-full px-6 transition-all active:scale-95"
-                        onClick={() => toggleIdentityReveal(connectionId, user?.uid || "")}
-                        disabled={amRevealed}
-                    >
-                        {amRevealed ? (
-                            <React.Fragment><Lock className="mr-2 h-3 w-3" /> Esperando al otro...</React.Fragment>
+        <div className="flex flex-col h-[calc(100vh-2rem)] max-w-4xl mx-auto border-x border-border/40 bg-background shadow-2xl overflow-hidden animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="p-4 border-b border-border/40 flex items-center justify-between bg-background/80 backdrop-blur-md sticky top-0 z-10">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border/40 relative">
+                        {isRevealed && otherUser?.photoUrl ? (
+                            <Image
+                                src={otherUser.photoUrl}
+                                alt="Avatar"
+                                fill
+                                className="object-cover"
+                            />
                         ) : (
-                            <React.Fragment><Eye className="mr-2 h-3 w-3" /> Revelar mi Foto</React.Fragment>
+                            <User className="h-5 w-5 text-muted-foreground" />
                         )}
+                    </div>
+                    <div>
+                        <h2 className="font-serif font-bold tracking-tight">{otherUser?.nickname || "Alma misteriosa"}</h2>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            {connection?.status === "accepted" ? "En sintonía" : "Conectando"}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                        <Info className="h-5 w-5" />
+                    </Button>
+                    <Button
+                        variant={connection?.revealedUsers?.includes(user?.uid || "") ? "secondary" : "outline"}
+                        size="sm"
+                        onClick={handleToggleReveal}
+                        className="gap-2 text-xs font-bold uppercase tracking-tighter"
+                    >
+                        <Shield className="h-3.5 w-3.5" />
+                        {connection?.revealedUsers?.includes(user?.uid || "") ? "Identidad Ofrecida" : "Revelar Identidad"}
                     </Button>
                 </div>
-            )}
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.length === 0 && (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm italic">
-                        Di algo para comenzar a conocer su alma...
-                    </div>
-                )}
-                {messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.senderId === user?.uid ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[80%] rounded-2xl p-3 shadow-sm ${msg.senderId === user?.uid
-                            ? "bg-primary text-primary-foreground rounded-tr-none"
-                            : "bg-card border border-border/50 rounded-tl-none text-card-foreground"
-                            }`}>
-                            <p className="text-sm leading-relaxed">{msg.text}</p>
-                            <span className="text-[10px] opacity-70 block text-right mt-1 font-medium">
-                                {msg.createdAt?.toDate ? msg.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Enviando..."}
-                            </span>
-                        </div>
-                    </div>
-                ))}
             </div>
 
-            <div className="p-4 border-t flex gap-2">
-                <Input
-                    placeholder="Escribe un mensaje..."
-                    value={newMessage}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMessage(e.target.value)}
-                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && handleSend()}
-                    className="bg-muted/50 border-transparent focus-visible:bg-background transition-colors"
-                />
-                <Button size="icon" onClick={handleSend} disabled={!newMessage.trim()} className="rounded-full shadow-md transition-transform active:scale-90">
-                    <Send className="h-4 w-4" />
-                </Button>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth bg-accent/5">
+                {messages.length === 0 && (
+                    <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20 opacity-40">
+                        <Heart className="h-12 w-12 text-primary/20 animate-pulse" />
+                        <p className="text-sm font-serif italic">El silencio es el lienzo donde se pinta el alma.</p>
+                        <p className="text-[10px] uppercase tracking-widest font-bold">Inicia la conversación</p>
+                    </div>
+                )}
+                {messages.map((msg, i) => {
+                    const isMe = msg.senderId === user?.uid
+                    return (
+                        <div key={i} className={`flex ${isMe ? "justify-end" : "justify-start"} animate-in slide-in-from-bottom-2 duration-300`}>
+                            <div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${isMe
+                                    ? "bg-primary text-primary-foreground rounded-tr-none"
+                                    : "bg-card border border-border/40 rounded-tl-none"
+                                }`}>
+                                {msg.text}
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t border-border/40 bg-background/80 backdrop-blur-md">
+                <form onSubmit={handleSend} className="flex gap-2">
+                    <Input
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        placeholder="Escribe tu verdad..."
+                        className="bg-muted/50 border-none focus-visible:ring-primary/20 h-12 text-base font-light rounded-xl px-6"
+                    />
+                    <Button type="submit" size="icon" className="h-12 w-12 rounded-xl shadow-lg transition-all active:scale-90 bg-primary hover:bg-primary/90">
+                        <Send className="h-5 w-5" />
+                    </Button>
+                </form>
             </div>
         </div>
     )

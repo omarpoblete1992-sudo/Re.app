@@ -1,126 +1,144 @@
 "use client"
 
 import * as React from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { getUserProfile, updateUserProfile, UserProfile } from "@/lib/firestore"
-import { Camera, Save, CheckCircle2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { User, Crown } from "lucide-react"
+import Image from "next/image"
 
 export default function ProfilePage() {
     const { user } = useAuth()
-    const [profile, setProfile] = React.useState<UserProfile | null>(null)
-    const [loading, setLoading] = React.useState(true)
-    const [saving, setSaving] = React.useState(false)
-    const [photoUrl, setPhotoUrl] = React.useState("")
-    const [success, setSuccess] = React.useState(false)
+    const [profile, setProfile] = useState<UserProfile | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [successMsg, setSuccessMsg] = useState("")
 
-    React.useEffect(() => {
-        if (!user) return
-        getUserProfile(user.uid).then((data) => {
-            if (data) {
+    useEffect(() => {
+        const fetchProfile = async () => {
+            if (user) {
+                const data = await getUserProfile(user.uid)
                 setProfile(data)
-                setPhotoUrl(data.photoUrl || "")
+                setLoading(false)
             }
-            setLoading(false)
-        })
+        }
+        fetchProfile()
     }, [user])
 
     const handleSave = async () => {
-        if (!user) return
+        if (!user || !profile) return
         setSaving(true)
-        setSuccess(false)
+        setSuccessMsg("")
         try {
-            await updateUserProfile(user.uid, { photoUrl })
-            setSuccess(true)
-            setTimeout(() => setSuccess(false), 3000)
-        } catch (err) {
-            console.error("Error updating profile:", err)
+            await updateUserProfile(user.uid, profile)
+            setSuccessMsg("Tu esencia ha sido actualizada.")
+            setTimeout(() => setSuccessMsg(""), 3000)
+        } catch (error) {
+            console.error("Error updating profile:", error)
         } finally {
             setSaving(false)
         }
     }
 
-    if (loading) return <div className="p-8 text-center text-muted-foreground italic">Sintonizando con tu alma...</div>
+    if (loading) return <div className="p-8 text-center italic">Cargando tu esencia...</div>
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-700">
-            <div className="flex justify-between items-end">
-                <h1 className="text-3xl font-serif font-bold tracking-tight">Mi Perfil</h1>
-                {success && (
-                    <div className="flex items-center gap-2 text-green-600 text-sm font-medium animate-in zoom-in duration-300">
-                        <CheckCircle2 className="h-4 w-4" /> Cambios guardados
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex flex-col md:flex-row items-center gap-8 bg-card/30 p-8 rounded-3xl border border-border/40 backdrop-blur-sm">
+                <div className="relative group">
+                    <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-primary/20 transition-all group-hover:border-primary/50 relative">
+                        {profile?.photoUrl ? (
+                            <Image
+                                src={profile.photoUrl}
+                                alt="Avatar"
+                                fill
+                                className="object-cover"
+                            />
+                        ) : (
+                            <User className="w-12 h-12 text-muted-foreground" />
+                        )}
                     </div>
-                )}
+                </div>
+
+                <div className="flex-1 text-center md:text-left space-y-2">
+                    <div className="flex items-center justify-center md:justify-start gap-3">
+                        <h1 className="text-4xl font-serif font-bold tracking-tight">{profile?.nickname || "Sin apodo"}</h1>
+                        {profile?.likes && profile.likes > 100 && (
+                            <Crown className="w-6 h-6 text-amber-500 animate-bounce" />
+                        )}
+                    </div>
+                    <p className="text-muted-foreground font-light text-lg italic">
+                        &quot;{profile?.credo || "Aún no has definido tu credo."}&quot;
+                    </p>
+                </div>
             </div>
 
-            <Card className="overflow-hidden border-border/50 shadow-sm">
-                <CardHeader className="bg-muted/30 border-b">
-                    <CardTitle className="text-lg font-serif">Identidad Física</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-6">
-                    <p className="text-xs text-muted-foreground leading-relaxed italic">
-                        Tu foto solo será visible para aquellos con quienes alcances 30 interacciones y decidas revelar tu identidad de forma mutua.
-                    </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-6">
+                    <Card className="border-border/40 shadow-sm overflow-hidden">
+                        <CardHeader className="bg-muted/30 border-b border-border/40">
+                            <CardTitle className="text-xl font-serif">Tu Verdad</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-6">
+                            <div className="space-y-4">
+                                <label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">Biografía / Esencia</label>
+                                <Textarea
+                                    value={profile?.bio || ""}
+                                    onChange={(e) => setProfile(prev => prev ? { ...prev, bio: e.target.value } : null)}
+                                    className="min-h-[150px] font-serif text-lg leading-relaxed bg-background/50 border-border/40 focus:border-primary/40 transition-colors"
+                                    placeholder="¿Quién eres realmente cuando nadie mira?"
+                                />
+                            </div>
 
-                    <div className="flex flex-col items-center gap-4 py-4">
-                        <div className="h-32 w-32 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden relative group">
-                            {photoUrl ? (
-                                <img src={photoUrl} alt="Preview" className="h-full w-full object-cover" />
-                            ) : (
-                                <Camera className="h-8 w-8 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">Influencias</label>
+                                    <Input
+                                        value={profile?.authors || ""}
+                                        onChange={(e) => setProfile(prev => prev ? { ...prev, authors: e.target.value } : null)}
+                                        placeholder="Ej: Nietzsche, Woolf..."
+                                        className="bg-background/50 border-border/40"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">Email (No visible)</label>
+                                    <Input value={profile?.email || ""} readOnly className="bg-muted/50 cursor-not-allowed border-none text-muted-foreground/60" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="space-y-6">
+                    <Card className="border-border/40 bg-accent/5 overflow-hidden">
+                        <CardHeader className="border-b border-border/40">
+                            <CardTitle className="text-lg font-serif">Estado</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-2 border-b border-border/20">
+                                    <span className="text-sm font-medium text-muted-foreground">Reconocimientos</span>
+                                    <span className="font-serif font-bold text-primary">{profile?.likes || 0}</span>
+                                </div>
+                            </div>
+
+                            <Button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="w-full mt-8 rounded-xl shadow-lg transition-all active:scale-95 py-6 font-bold uppercase tracking-widest text-xs"
+                            >
+                                {saving ? "Guardando..." : "Actualizar Esencia"}
+                            </Button>
+                            {successMsg && (
+                                <p className="text-center text-xs text-green-500 mt-4 font-bold animate-pulse">{successMsg}</p>
                             )}
-                        </div>
-                        <div className="w-full max-w-sm space-y-2">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">URL de tu Foto</span>
-                            <Input
-                                placeholder="https://ejemplo.com/tu-foto.jpg"
-                                value={photoUrl}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhotoUrl(e.target.value)}
-                                className="bg-muted/20 focus:bg-background transition-colors"
-                            />
-                            <p className="text-[10px] text-muted-foreground italic text-center">
-                                * Por ahora, pega el link de una imagen. La subida directa estará disponible pronto.
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="border-border/50 shadow-sm">
-                <CardHeader className="bg-muted/30 border-b">
-                    <CardTitle className="text-lg font-serif">Datos del Alma</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Apodo</span>
-                            <Input value={profile?.nickname || ""} readOnly className="bg-muted/50 font-serif" />
-                        </div>
-                        <div className="space-y-2">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Email</span>
-                            <Input value={profile?.email || ""} readOnly className="bg-muted/50" />
-                        </div>
-                    </div>
-
-                    <div className="pt-6 flex justify-end">
-                        <Button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="rounded-full px-8 shadow-md transition-all active:scale-95"
-                        >
-                            {saving ? "Guardando..." : <React.Fragment><Save className="mr-2 h-4 w-4" /> Guardar Cambios</React.Fragment>}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <div className="pt-8 border-t border-dashed">
-                <h2 className="text-xl font-serif font-semibold mb-4 text-destructive opacity-80">Zona de Peligro</h2>
-                <Button variant="outline" className="border-destructive/30 text-destructive/70 hover:bg-destructive/5 hover:text-destructive rounded-full transition-colors">
-                    Desactivar mi Esencia
-                </Button>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     )

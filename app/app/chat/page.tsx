@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { MessageCircle, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { db } from "@/lib/firebase"
-import { collection, query, where, onSnapshot } from "firebase/firestore"
+import { collection, onSnapshot } from "firebase/firestore"
 import { Connection, getUserProfile, UserProfile } from "@/lib/firestore"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function ChatListPage() {
     const { user } = useAuth()
@@ -17,39 +18,9 @@ export default function ChatListPage() {
     React.useEffect(() => {
         if (!user) return
 
-        // Query connections where user is 'from' OR 'to'
-        // Firestore doesn't support OR natively in a clean way for different fields without complex indexes sometimes,
-        // but for now we can query one and filter or use multiple subscriptions.
-        // Given we use deterministic IDs, we could query all connections and filter by prefix/suffix, but better to query by UID.
-
         const connRef = collection(db, "connections")
-        const q1 = query(connRef, where("fromUserId", "==", user.uid))
-        const q2 = query(connRef, where("toUserId", "==", user.uid))
 
-        const updateConnections = async (snaps: any[]) => {
-            const allConns = snaps.flatMap(snap => snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }))) as Connection[]
-
-            // Deduplicate (just in case)
-            const uniqueConns = Array.from(new Map(allConns.map(c => [c.id, c])).values())
-
-            // Enrich with other user profile
-            const enriched = await Promise.all(uniqueConns.map(async (conn) => {
-                const otherUid = conn.fromUserId === user.uid ? conn.toUserId : conn.fromUserId
-                const otherUser = await getUserProfile(otherUid)
-                return { ...conn, otherUser: otherUser || undefined }
-            }))
-
-            setConnections(enriched)
-            setLoading(false)
-        }
-
-        const unsub1 = onSnapshot(q1, (snap) => {
-            // This is a bit naive but works for small sets.
-            // Ideally use a single combined state update logic.
-        })
-
-        // Better: use one onSnapshot for both if possible or just handle combined state.
-        // For simplicity in this demo environment:
+        // Single onSnapshot for all connections where the user is involved
         const unsub = onSnapshot(connRef, async (snap) => {
             const docs = snap.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as Connection))
@@ -86,9 +57,14 @@ export default function ChatListPage() {
                         <Card className="hover:bg-accent/5 transition-all cursor-pointer border-border/50 hover:shadow-md mb-4 group overflow-hidden">
                             <CardContent className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border/50 group-hover:scale-105 transition-transform">
+                                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border/50 group-hover:scale-105 transition-transform relative">
                                         {(conn.revealedUsers?.includes(user?.uid || "") && conn.revealedUsers?.find(id => id !== user?.uid)) && conn.otherUser?.photoUrl ? (
-                                            <img src={conn.otherUser.photoUrl} alt="Avatar" className="h-full w-full object-cover" />
+                                            <Image
+                                                src={conn.otherUser.photoUrl}
+                                                alt="Avatar"
+                                                fill
+                                                className="object-cover"
+                                            />
                                         ) : (
                                             <User className="h-6 w-6 text-muted-foreground" />
                                         )}

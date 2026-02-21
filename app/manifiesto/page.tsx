@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function ManifiestoPage() {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center max-w-2xl mx-auto">
@@ -25,12 +27,12 @@ export default function ManifiestoPage() {
                 </p>
             </div>
             <div className="mt-12">
-                <a
+                <Link
                     href="/"
                     className="text-primary hover:text-accent transition-colors underline-offset-4 hover:underline"
                 >
                     Volver al inicio
-                </a>
+                </Link>
             </div>
         </div>
     )
