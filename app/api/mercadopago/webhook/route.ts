@@ -7,7 +7,6 @@ import { NextResponse } from 'next/server';
 
 // El resto de tus importaciones (initializeApp, etc.) irían aquí.
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
 // ...y cualquier otra cosa que necesites para tu lógica de webhook.
 
 export async function POST(req: Request) {
