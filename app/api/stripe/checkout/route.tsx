@@ -1,4 +1,4 @@
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe";
 import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       email: "mock@example.com"
     }
 
-    const stripeSession = await stripe.checkout.sessions.create({
+    const stripeSession = await getStripe().checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
