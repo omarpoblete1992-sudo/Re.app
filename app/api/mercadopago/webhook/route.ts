@@ -32,7 +32,6 @@ export async function POST(req: Request) {
   };
 
   const app = getFirebaseApp();
-  const auth = getAuth(app);
   // --------------------------------------------------------
 
 
