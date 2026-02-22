@@ -1,0 +1,73 @@
+[debug] [2026-02-22T20:29:27.725Z] ----------------------------------------------------------------------
+[debug] [2026-02-22T20:29:28.497Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\bell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init apphosting
+[debug] [2026-02-22T20:29:28.499Z] CLI Version:   15.6.0
+[debug] [2026-02-22T20:29:28.499Z] Platform:      win32
+[debug] [2026-02-22T20:29:28.499Z] Node Version:  v24.13.0
+[debug] [2026-02-22T20:29:28.500Z] Time:          Sun Feb 22 2026 17:29:28 GMT-0300 (hora de verano de Chile)
+[debug] [2026-02-22T20:29:28.501Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-22T20:29:28.509Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\bell\Desktop\Reflexion
+
+[debug] [2026-02-22T20:30:40.389Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-02-22T20:30:40.389Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-02-22T20:35:11.013Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\bell\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:508:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1327:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:284:20)
+    at ReadStream.emit (node:events:520:35)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-02-22T20:42:34.685Z] ----------------------------------------------------------------------
+[debug] [2026-02-22T20:42:34.698Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\bell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init apphosting
+[debug] [2026-02-22T20:42:34.699Z] CLI Version:   15.6.0
+[debug] [2026-02-22T20:42:34.700Z] Platform:      win32
+[debug] [2026-02-22T20:42:34.700Z] Node Version:  v24.13.0
+[debug] [2026-02-22T20:42:34.701Z] Time:          Sun Feb 22 2026 17:42:34 GMT-0300 (hora de verano de Chile)
+[debug] [2026-02-22T20:42:34.702Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\bell\Desktop\Reflexion
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-02-22T20:54:01.389Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\bell\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:508:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1327:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:284:20)
+    at ReadStream.emit (node:events:520:35)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+[error] 
+[error] Error: An unexpected error has occurred.
