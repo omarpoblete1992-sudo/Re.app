@@ -1,11 +1,36 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/lib/auth-context"
 
 export default function SettingsPage() {
+    const { user, logout } = useAuth()
+    const [loadingPayment, setLoadingPayment] = useState(false)
+
+    const handleSubscribe = async () => {
+        if (!user) return
+        setLoadingPayment(true)
+        try {
+            const res = await fetch("/api/mercadopago/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: user.uid, userEmail: user.email }),
+            })
+            const data = await res.json()
+            if (data.init_point) {
+                window.location.href = data.init_point
+            }
+        } catch (err) {
+            console.error("Error iniciando suscripción:", err)
+        } finally {
+            setLoadingPayment(false)
+        }
+    }
+
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <h1 className="text-3xl font-serif font-bold">Ajustes</h1>
@@ -18,13 +43,19 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                         <div>
-                            <p className="font-medium">Estado: <span className="text-green-600">Periodo de Gracia</span></p>
-                            <p className="text-sm text-muted-foreground">Termina en 5 días</p>
+                            <p className="font-medium">Estado: <span className="text-amber-600">Sin suscripción activa</span></p>
+                            <p className="text-sm text-muted-foreground">$1.990 CLP / mes</p>
                         </div>
-                        <Button variant="outline">Gestionar en Stripe</Button>
+                        <Button
+                            onClick={handleSubscribe}
+                            disabled={loadingPayment}
+                            className="bg-[#009ee3] hover:bg-[#0088c7] text-white font-semibold"
+                        >
+                            {loadingPayment ? "Redirigiendo..." : "Suscribirse con MercadoPago"}
+                        </Button>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                        <p>Tu próxima facturación será de $1.99 el 24 de Febrero.</p>
+                        <p>El pago se procesa de forma segura a través de MercadoPago. Podés cancelar cuando quieras.</p>
                     </div>
                 </CardContent>
             </Card>
@@ -53,7 +84,11 @@ export default function SettingsPage() {
             </Card>
 
             <div className="pt-4">
-                <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                <Button
+                    variant="ghost"
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    onClick={logout}
+                >
                     Cerrar Sesión
                 </Button>
             </div>
