@@ -13,35 +13,49 @@ const firebaseConfig = {
 };
 
 /**
- * Singleton/Intelligent initialization for Firebase.
- * This ensures that initializeApp is only called once, and handles 
- * the absence of environment variables during the Next.js build phase.
+ * Inicialización lazy de Firebase.
+ * Durante el build de Next.js (generación de páginas estáticas), las variables
+ * de entorno pueden no estar disponibles. Al hacer la inicialización lazy,
+ * evitamos que getAuth() se ejecute a nivel de módulo durante SSG,
+ * previniendo el error 'auth/invalid-api-key'.
  */
+
+let _app: FirebaseApp | null = null;
+let _auth: Auth | null = null;
+let _db: Firestore | null = null;
+let _googleProvider: GoogleAuthProvider | null = null;
+
 function getFirebaseApp(): FirebaseApp {
+    if (_app) return _app;
+
     const apps = getApps();
     if (apps.length > 0) {
-        return apps[0];
+        _app = apps[0];
+        return _app;
     }
 
-    // During Next.js build (e.g., generating static pages), environment variables
-    // might be missing, which causes initializeApp to throw 'auth/invalid-api-key'.
-    // We check if the apiKey is present before initializing.
-    if (!firebaseConfig.apiKey) {
-        // Return a dummy initialization to prevent the build from crashing
-        // when pre-rendering pages (like /_not-found) that don't actually 
-        // need to interact with Firebase at build time.
-        return initializeApp({
-            ...firebaseConfig,
-            apiKey: "dummy-key-for-build-process-only"
-        });
-    }
-
-    return initializeApp(firebaseConfig);
+    _app = initializeApp(firebaseConfig);
+    return _app;
 }
 
-const app: FirebaseApp = getFirebaseApp();
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
+// Exportaciones lazy — solo se inicializan cuando se accede por primera vez
+export const auth: Auth = new Proxy({} as Auth, {
+    get(_target, prop) {
+        if (!_auth) _auth = getAuth(getFirebaseApp());
+        return (_auth as unknown as Record<string | symbol, unknown>)[prop];
+    },
+});
 
-export { app, auth, db, googleProvider };
+export const db: Firestore = new Proxy({} as Firestore, {
+    get(_target, prop) {
+        if (!_db) _db = getFirestore(getFirebaseApp());
+        return (_db as unknown as Record<string | symbol, unknown>)[prop];
+    },
+});
+
+export const googleProvider: GoogleAuthProvider = new Proxy({} as GoogleAuthProvider, {
+    get(_target, prop) {
+        if (!_googleProvider) _googleProvider = new GoogleAuthProvider();
+        return (_googleProvider as unknown as Record<string | symbol, unknown>)[prop];
+    },
+});
