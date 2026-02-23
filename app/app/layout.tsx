@@ -1,5 +1,4 @@
 "use client"
-export const dynamic = 'force-dynamic';
 
 import { Sidebar } from "@/components/layout/sidebar"
 import { ProtectedRoute } from "@/components/auth/protected-route"
