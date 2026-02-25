@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useParams, useRouter } from "next/navigation"
 import { db } from "@/lib/firebase"
-import { sendMessage, toggleIdentityReveal, Connection, Message, getUserProfile, UserProfile } from "@/lib/firestore"
+import { sendMessage, toggleIdentityReveal, Connection, Message, getUserProfile, UserProfile, INTERACTION_THRESHOLD, isUserSilenced } from "@/lib/firestore"
 import { collection, onSnapshot, query, orderBy, doc } from "firebase/firestore"
 import Image from "next/image"
 import { User, Send, Shield, Info, Heart } from "lucide-react"
@@ -16,11 +16,12 @@ export default function ChatDetailPage() {
     const router = useRouter()
     const connectionId = params.id as string
 
-    const { user } = useAuth()
+    const { user, userRole } = useAuth()
     const [messages, setMessages] = React.useState<Message[]>([])
     const [inputText, setInputText] = React.useState("")
     const [connection, setConnection] = React.useState<Connection | null>(null)
     const [otherUser, setOtherUser] = React.useState<UserProfile | null>(null)
+    const [myProfile, setMyProfile] = React.useState<UserProfile | null>(null)
     const [loading, setLoading] = React.useState(true)
 
     React.useEffect(() => {
@@ -38,6 +39,11 @@ export default function ChatDetailPage() {
             const otherUid = data.fromUserId === user.uid ? data.toUserId : data.fromUserId
             const profile = await getUserProfile(otherUid)
             setOtherUser(profile)
+
+            // Fetch current user's profile for silence check
+            const myProf = await getUserProfile(user.uid)
+            setMyProfile(myProf)
+
             setLoading(false)
         })
 
@@ -70,7 +76,9 @@ export default function ChatDetailPage() {
 
     if (loading) return <div className="p-8 text-center italic">Cargando conversación...</div>
 
-    const isRevealed = (connection?.revealedUsers?.includes(user?.uid || "") && connection?.revealedUsers?.length === 2) || false
+    const isAdmin = userRole === "admin" || userRole === "moderator"
+    const isRevealed = isAdmin || (connection?.interactionCount ?? 0) >= INTERACTION_THRESHOLD
+    const progress = Math.min(connection?.interactionCount ?? 0, INTERACTION_THRESHOLD)
 
     return (
         <div className="flex flex-col h-[calc(100vh-2rem)] max-w-4xl mx-auto border-x border-border/40 bg-background shadow-2xl overflow-hidden animate-in fade-in duration-500">
@@ -94,6 +102,9 @@ export default function ChatDetailPage() {
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                             {connection?.status === "accepted" ? "En sintonía" : "Conectando"}
+                            {!isRevealed && (
+                                <span className="ml-2 text-primary/60">· {progress}/{INTERACTION_THRESHOLD} para revelar</span>
+                            )}
                         </p>
                     </div>
                 </div>
@@ -127,8 +138,8 @@ export default function ChatDetailPage() {
                     return (
                         <div key={i} className={`flex ${isMe ? "justify-end" : "justify-start"} animate-in slide-in-from-bottom-2 duration-300`}>
                             <div className={`max-w-[80%] px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${isMe
-                                    ? "bg-primary text-primary-foreground rounded-tr-none"
-                                    : "bg-card border border-border/40 rounded-tl-none"
+                                ? "bg-primary text-primary-foreground rounded-tr-none"
+                                : "bg-card border border-border/40 rounded-tl-none"
                                 }`}>
                                 {msg.text}
                             </div>
@@ -139,17 +150,23 @@ export default function ChatDetailPage() {
 
             {/* Input */}
             <div className="p-4 border-t border-border/40 bg-background/80 backdrop-blur-md">
-                <form onSubmit={handleSend} className="flex gap-2">
-                    <Input
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        placeholder="Escribe tu verdad..."
-                        className="bg-muted/50 border-none focus-visible:ring-primary/20 h-12 text-base font-light rounded-xl px-6"
-                    />
-                    <Button type="submit" size="icon" className="h-12 w-12 rounded-xl shadow-lg transition-all active:scale-90 bg-primary hover:bg-primary/90">
-                        <Send className="h-5 w-5" />
-                    </Button>
-                </form>
+                {isUserSilenced(myProfile) ? (
+                    <div className="text-center py-2">
+                        <p className="text-sm text-amber-600 font-medium">🔇 Estás silenciado hasta el {myProfile?.silencedUntil?.toDate().toLocaleString("es-CL")}</p>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSend} className="flex gap-2">
+                        <Input
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                            placeholder="Escribe tu verdad..."
+                            className="bg-muted/50 border-none focus-visible:ring-primary/20 h-12 text-base font-light rounded-xl px-6"
+                        />
+                        <Button type="submit" size="icon" className="h-12 w-12 rounded-xl shadow-lg transition-all active:scale-90 bg-primary hover:bg-primary/90">
+                            <Send className="h-5 w-5" />
+                        </Button>
+                    </form>
+                )}
             </div>
         </div>
     )

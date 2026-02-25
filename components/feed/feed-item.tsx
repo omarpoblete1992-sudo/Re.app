@@ -4,9 +4,9 @@ import * as React from "react"
 import { useState } from "react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Heart, Check, Clock, Crown, ChevronDown, ChevronUp } from "lucide-react"
+import { Heart, Check, Clock, Crown, ChevronDown, ChevronUp, Trash2, VolumeX } from "lucide-react"
 import { getMaxChars, getRemainingForExpansion } from "@/lib/post-limits"
-import { likePost, createConnection } from "@/lib/firestore"
+import { likePost, createConnection, deleteEssence, silenceUser } from "@/lib/firestore"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 
@@ -25,14 +25,18 @@ export interface FeedItemProps {
         timeAgo?: string
         feed: string
     }
+    onDeleted?: (postId: string) => void
 }
 
-export const FeedItem = ({ user }: FeedItemProps) => {
+export const FeedItem = ({ user, onDeleted }: FeedItemProps) => {
     const [status, setStatus] = useState<"idle" | "pending" | "connected">("idle")
     const [expanded, setExpanded] = useState(false)
     const [currentLikes, setCurrentLikes] = useState(user.likes ?? 0)
     const [hasLiked, setHasLiked] = useState(false)
-    const { user: authUser } = useAuth()
+    const [modAction, setModAction] = useState<string | null>(null)
+    const { user: authUser, userRole } = useAuth()
+
+    const isMod = userRole === "admin" || userRole === "moderator"
 
     const maxChars = getMaxChars(currentLikes)
     const needsExpansion = user.bio.length > maxChars
@@ -62,6 +66,31 @@ export const FeedItem = ({ user }: FeedItemProps) => {
         }
     }
 
+    const handleDeletePost = async () => {
+        if (!authUser || !isMod) return
+        setModAction("deleting")
+        try {
+            await deleteEssence(user.id, authUser.uid)
+            onDeleted?.(user.id)
+        } catch (err) {
+            console.error("Error deleting post:", err)
+        } finally {
+            setModAction(null)
+        }
+    }
+
+    const handleSilenceUser = async () => {
+        if (!authUser || !isMod) return
+        setModAction("silencing")
+        try {
+            await silenceUser(user.userId, authUser.uid, 24)
+            setModAction("silenced")
+        } catch (err) {
+            console.error("Error silencing user:", err)
+            setModAction(null)
+        }
+    }
+
     return (
         <Card className="overflow-hidden border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -76,12 +105,42 @@ export const FeedItem = ({ user }: FeedItemProps) => {
                         </div>
                     )}
                 </div>
-                {(user.age || true) && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground font-light">
-                        <Clock className="w-3 h-3" />
-                        {user.timeAgo || "Ahora"}
-                    </div>
-                )}
+                <div className="flex items-center gap-2">
+                    {/* Moderation buttons */}
+                    {isMod && authUser?.uid !== user.userId && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleSilenceUser}
+                                disabled={modAction !== null}
+                                className="h-6 w-6 p-0 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                                title="Silenciar usuario (24h)"
+                            >
+                                <VolumeX className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleDeletePost}
+                                disabled={modAction !== null}
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                title="Eliminar esencia"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                        </div>
+                    )}
+                    {modAction === "silenced" && (
+                        <span className="text-[9px] text-amber-600 font-bold uppercase">Silenciado</span>
+                    )}
+                    {(user.age || true) && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground font-light">
+                            <Clock className="w-3 h-3" />
+                            {user.timeAgo || "Ahora"}
+                        </div>
+                    )}
+                </div>
             </CardHeader>
 
             <CardContent className="pb-4">

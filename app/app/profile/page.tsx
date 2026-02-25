@@ -1,14 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { getUserProfile, updateUserProfile, UserProfile } from "@/lib/firestore"
+import { getUserProfile, updateUserProfile, uploadAvatar, UserProfile } from "@/lib/firestore"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { User, Crown } from "lucide-react"
+import { User, Crown, Camera } from "lucide-react"
 import Image from "next/image"
 
 export default function ProfilePage() {
@@ -16,7 +16,9 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<UserProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [uploadingPhoto, setUploadingPhoto] = useState(false)
     const [successMsg, setSuccessMsg] = useState("")
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -28,6 +30,23 @@ export default function ProfilePage() {
         }
         fetchProfile()
     }, [user])
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !user) return
+
+        setUploadingPhoto(true)
+        try {
+            const photoUrl = await uploadAvatar(user.uid, file)
+            setProfile(prev => prev ? { ...prev, photoUrl } : null)
+            setSuccessMsg("Tu foto ha sido actualizada.")
+            setTimeout(() => setSuccessMsg(""), 3000)
+        } catch (error) {
+            console.error("Error uploading photo:", error)
+        } finally {
+            setUploadingPhoto(false)
+        }
+    }
 
     const handleSave = async () => {
         if (!user || !profile) return
@@ -61,7 +80,30 @@ export default function ProfilePage() {
                         ) : (
                             <User className="w-12 h-12 text-muted-foreground" />
                         )}
+
+                        {/* Upload overlay */}
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingPhoto}
+                            className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
+                        >
+                            {uploadingPhoto ? (
+                                <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Camera className="w-6 h-6 text-white" />
+                            )}
+                        </button>
                     </div>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                    />
+                    <p className="text-[10px] text-muted-foreground text-center mt-2 uppercase tracking-widest font-medium">
+                        {uploadingPhoto ? "Subiendo..." : "Cambiar foto"}
+                    </p>
                 </div>
 
                 <div className="flex-1 text-center md:text-left space-y-2">
@@ -73,6 +115,9 @@ export default function ProfilePage() {
                     </div>
                     <p className="text-muted-foreground font-light text-lg italic">
                         &quot;{profile?.credo || "Aún no has definido tu credo."}&quot;
+                    </p>
+                    <p className="text-xs text-muted-foreground/60">
+                        Tu foto solo será visible para quienes conecten profundamente contigo (50 interacciones).
                     </p>
                 </div>
             </div>

@@ -127,6 +127,7 @@ function FeedContent() {
                     : "Recién",
                   feed: post.feed,
                 }}
+                onDeleted={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
               />
             ))}
           </div>

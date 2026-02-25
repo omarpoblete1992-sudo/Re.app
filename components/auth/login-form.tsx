@@ -58,11 +58,23 @@ export function LoginForm() {
             await signInWithGoogle()
             router.push("/app/feed?type=pareja")
         } catch (err: unknown) {
-            const firebaseError = err as { code?: string }
+            const firebaseError = err as { code?: string; message?: string }
+            console.error("Google Sign-In error:", firebaseError.code, firebaseError.message)
+
             if (firebaseError.code === "auth/popup-closed-by-user") {
                 // User closed the popup, not an error
+            } else if (firebaseError.code === "auth/cancelled-popup-request") {
+                // Another popup was already open
+            } else if (firebaseError.code === "auth/unauthorized-domain") {
+                setError("Dominio no autorizado. Verifica la configuración de Firebase Authentication.")
+            } else if (firebaseError.code === "auth/popup-blocked") {
+                setError("El navegador bloqueó la ventana emergente. Permite pop-ups e intenta de nuevo.")
+            } else if (firebaseError.code === "auth/network-request-failed") {
+                setError("Error de red. Verifica tu conexión a internet.")
+            } else if (firebaseError.code === "auth/user-disabled") {
+                setError("Tu cuenta ha sido deshabilitada.")
             } else {
-                setError("Error con Google Sign-In. Intenta de nuevo.")
+                setError(`Error con Google Sign-In (${firebaseError.code || "desconocido"}). Intenta de nuevo.`)
             }
         } finally {
             setIsLoading(false)

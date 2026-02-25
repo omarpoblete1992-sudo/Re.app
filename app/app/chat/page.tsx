@@ -6,12 +6,12 @@ import { MessageCircle, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { db } from "@/lib/firebase"
 import { collection, onSnapshot } from "firebase/firestore"
-import { Connection, getUserProfile, UserProfile } from "@/lib/firestore"
+import { Connection, getUserProfile, UserProfile, INTERACTION_THRESHOLD } from "@/lib/firestore"
 import Link from "next/link"
 import Image from "next/image"
 
 export default function ChatListPage() {
-    const { user } = useAuth()
+    const { user, userRole } = useAuth()
     const [connections, setConnections] = React.useState<(Connection & { otherUser?: UserProfile })[]>([])
     const [loading, setLoading] = React.useState(true)
 
@@ -58,7 +58,7 @@ export default function ChatListPage() {
                             <CardContent className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border/50 group-hover:scale-105 transition-transform relative">
-                                        {(conn.revealedUsers?.includes(user?.uid || "") && conn.revealedUsers?.find(id => id !== user?.uid)) && conn.otherUser?.photoUrl ? (
+                                        {(conn.interactionCount >= INTERACTION_THRESHOLD || userRole === "admin" || userRole === "moderator") && conn.otherUser?.photoUrl ? (
                                             <Image
                                                 src={conn.otherUser.photoUrl}
                                                 alt="Avatar"
@@ -78,8 +78,11 @@ export default function ChatListPage() {
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <MessageCircle className="h-4 w-4 text-primary/40 group-hover:text-primary transition-colors" />
-                                    {conn.interactionCount >= 30 && (
-                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">REVELACIÓN DISPONIBLE</span>
+                                    {conn.interactionCount >= INTERACTION_THRESHOLD && (
+                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">FOTO REVELADA</span>
+                                    )}
+                                    {conn.interactionCount >= Math.floor(INTERACTION_THRESHOLD * 0.6) && conn.interactionCount < INTERACTION_THRESHOLD && (
+                                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">{conn.interactionCount}/{INTERACTION_THRESHOLD}</span>
                                     )}
                                 </div>
                             </CardContent>

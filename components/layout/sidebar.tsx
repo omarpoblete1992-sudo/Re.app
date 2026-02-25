@@ -4,11 +4,18 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Heart, MessageCircle, User, Settings, Moon, Users, Crown, HeartCrack } from "lucide-react"
+import { Heart, MessageCircle, User, Settings, Moon, Users, Crown, HeartCrack, LogOut, ShieldCheck } from "lucide-react"
 import { Suspense } from "react"
+import { useAuth } from "@/lib/auth-context"
 
-function SidebarContent({ className }: { className?: string }) {
+interface SidebarContentProps {
+    className?: string
+    onNavigate?: () => void
+}
+
+function SidebarContent({ className, onNavigate }: SidebarContentProps) {
     const pathname = usePathname()
+    const { userRole } = useAuth()
 
     const navItems = [
         {
@@ -41,12 +48,18 @@ function SidebarContent({ className }: { className?: string }) {
             href: "/app/settings",
             icon: Settings,
         },
+        // Admin link — only visible to admins and moderators
+        ...((userRole === "admin" || userRole === "moderator") ? [{
+            title: "Admin",
+            href: "/app/admin",
+            icon: ShieldCheck,
+        }] : []),
     ]
 
     return (
         <div className={cn("flex flex-col h-full", className)}>
             <div className="p-6">
-                <Link href="/app/feed" className="flex items-center gap-2 font-serif text-2xl tracking-tighter">
+                <Link href="/app/feed" className="flex items-center gap-2 font-serif text-2xl tracking-tighter" onClick={onNavigate}>
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                         <Moon className="w-5 h-5 text-primary-foreground" />
                     </div>
@@ -58,7 +71,7 @@ function SidebarContent({ className }: { className?: string }) {
                 {navItems.map((item) => {
                     const isActive = pathname === item.href
                     return (
-                        <Link key={item.href} href={item.href}>
+                        <Link key={item.href} href={item.href} onClick={onNavigate}>
                             <Button
                                 variant={isActive ? "secondary" : "ghost"}
                                 className={cn(
@@ -94,18 +107,44 @@ function SidebarContent({ className }: { className?: string }) {
     )
 }
 
-import { LogOut } from "lucide-react"
-
 interface SidebarProps {
-    className?: string;
+    className?: string
+    isOpen?: boolean
+    onClose?: () => void
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, isOpen = false, onClose }: SidebarProps) {
     return (
-        <div className={cn("hidden lg:flex flex-col w-64 border-r border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60", className)}>
-            <Suspense fallback={<div className="p-6">Cargando...</div>}>
-                <SidebarContent />
-            </Suspense>
-        </div>
+        <>
+            {/* Desktop sidebar — always visible on lg+ */}
+            <div className={cn("hidden lg:flex flex-col w-64 border-r border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60", className)}>
+                <Suspense fallback={<div className="p-6">Cargando...</div>}>
+                    <SidebarContent />
+                </Suspense>
+            </div>
+
+            {/* Mobile drawer — only on < lg */}
+            {/* Overlay */}
+            <div
+                className={cn(
+                    "fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 lg:hidden",
+                    isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+                onClick={onClose}
+                aria-hidden="true"
+            />
+
+            {/* Sliding panel */}
+            <div
+                className={cn(
+                    "fixed inset-y-0 left-0 z-50 w-64 bg-background border-r border-border/40 transform transition-transform duration-300 ease-in-out lg:hidden",
+                    isOpen ? "translate-x-0" : "-translate-x-full"
+                )}
+            >
+                <Suspense fallback={<div className="p-6">Cargando...</div>}>
+                    <SidebarContent onNavigate={onClose} />
+                </Suspense>
+            </div>
+        </>
     )
 }
