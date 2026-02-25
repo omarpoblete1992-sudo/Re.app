@@ -11,7 +11,7 @@ import {
     updateProfile,
 } from "firebase/auth"
 import { auth, googleProvider } from "@/lib/firebase"
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"
+import { doc, setDoc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { UserRole } from "@/lib/firestore"
 
@@ -60,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                         setUserRole((data.role as UserRole) || "user")
                     } else {
+                        // El doc podría no existir aún si la Cloud Function está en ejecución.
+                        // Se asigna role "user" por defecto.
                         setUserRole("user")
                     }
                 } catch {
@@ -85,16 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const credential = await createUserWithEmailAndPassword(auth, email, password)
         await updateProfile(credential.user, { displayName: nickname })
 
-        // Create user document in Firestore with default role
+        // La Cloud Function onUserCreated crea el doc base automáticamente.
+        // Aquí solo mergeamos los campos extra del formulario de registro.
         await setDoc(doc(db, "users", credential.user.uid), {
-            email,
-            nickname,
             birthDate: extra.birthDate || "",
             gender: extra.gender || "",
             interestedIn: extra.interestedIn || "",
-            role: "user",
-            createdAt: serverTimestamp(),
-        })
+        }, { merge: true })
         setUserRole("user")
     }
 
@@ -103,25 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const signInWithGoogle = async () => {
-        const credential = await signInWithPopup(auth, googleProvider)
-
-        // Check if user doc exists, create if not
-        const userDoc = await getDoc(doc(db, "users", credential.user.uid))
-        if (!userDoc.exists()) {
-            await setDoc(doc(db, "users", credential.user.uid), {
-                email: credential.user.email,
-                nickname: credential.user.displayName || "Alma Anónima",
-                birthDate: "",
-                gender: "",
-                interestedIn: "",
-                role: "user",
-                createdAt: serverTimestamp(),
-            })
-            setUserRole("user")
-        } else {
-            const data = userDoc.data()
-            setUserRole((data.role as UserRole) || "user")
-        }
+        await signInWithPopup(auth, googleProvider)
+        // La Cloud Function onUserCreated se encarga de crear el perfil
+        // automáticamente en Firestore. El role se lee en onAuthStateChanged.
     }
 
     const logout = async () => {

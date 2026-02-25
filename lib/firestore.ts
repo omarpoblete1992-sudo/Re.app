@@ -193,17 +193,21 @@ export async function getPostsByFeed(feedType: string, currentUserProfile?: User
             break
 
         case "maestrisimos":
-            // Top 100 most liked posts
-            q = query(postsRef, orderBy("likes", "desc"), limit(100))
+            // Top 100 most liked posts (excluding nocturno)
+            q = query(
+                postsRef,
+                where("feed", "in", ["pareja", "amistad", "maestrisimos", "nadiemequiere"]),
+                orderBy("likes", "desc"),
+                limit(100)
+            )
             break
 
         case "nadiemequiere":
-            // Posts with few likes, most recent first
+            // Posts with few likes, most recent first (excluding nocturno)
             q = query(
                 postsRef,
-                where("likes", "<", 100),
+                where("feed", "in", ["pareja", "amistad", "maestrisimos", "nadiemequiere"]),
                 orderBy("likes", "asc"),
-                orderBy("createdAt", "desc"),
                 limit(20)
             )
             break
@@ -218,8 +222,10 @@ export async function getPostsByFeed(feedType: string, currentUserProfile?: User
             break
 
         default:
+            // Recientes: all feeds except nocturno
             q = query(
                 postsRef,
+                where("feed", "in", ["pareja", "amistad", "maestrisimos", "nadiemequiere"]),
                 orderBy("createdAt", "desc"),
                 limit(20)
             )
