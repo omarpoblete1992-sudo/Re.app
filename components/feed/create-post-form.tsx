@@ -70,6 +70,8 @@ export function CreatePostForm({ feedType, onSuccess }: CreatePostFormProps) {
                 authors: profile?.authors,
                 credo: profile?.credo,
                 feed: feedType,
+                gender: profile?.gender,
+                interestedIn: profile?.interestedIn,
             })
             reset()
             onSuccess?.()

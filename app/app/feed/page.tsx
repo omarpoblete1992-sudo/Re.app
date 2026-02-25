@@ -5,7 +5,7 @@ import { FeedTabs } from "@/components/feed/feed-tabs"
 import { NocturnoGate } from "@/components/feed/nocturno-gate"
 import { useSearchParams } from "next/navigation"
 import { useState, useEffect, Suspense } from "react"
-import { getPostsByFeed, Post } from "@/lib/firestore"
+import { getPostsByFeed, getUserProfile, Post, UserProfile } from "@/lib/firestore"
 import { useAuth } from "@/lib/auth-context"
 import { CreatePostForm } from "@/components/feed/create-post-form"
 
@@ -40,7 +40,14 @@ function FeedContent() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const isNocturno = type === "nocturno"
+
+  // Fetch user profile for pareja gender matching
+  useEffect(() => {
+    if (!user) return
+    getUserProfile(user.uid).then(p => setProfile(p))
+  }, [user])
 
   // Reset gate when switching away from nocturno
   useEffect(() => {
@@ -52,7 +59,7 @@ function FeedContent() {
     async function fetchPosts() {
       setLoading(true)
       try {
-        const data = await getPostsByFeed(type)
+        const data = await getPostsByFeed(type, profile)
         setPosts(data)
       } catch (err) {
         console.error("Error fetching posts:", err)
@@ -69,7 +76,7 @@ function FeedContent() {
     }
 
     fetchPosts()
-  }, [type, isGateOpen, isNocturno])
+  }, [type, isGateOpen, isNocturno, profile])
 
   const meta = tabMeta[type] || { title: "Feed", emptyMsg: "No hay contenido." }
 
@@ -96,7 +103,7 @@ function FeedContent() {
         <CreatePostForm
           feedType={type}
           onSuccess={async () => {
-            const data = await getPostsByFeed(type)
+            const data = await getPostsByFeed(type, profile)
             setPosts(data)
           }}
         />

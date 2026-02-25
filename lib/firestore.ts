@@ -36,6 +36,8 @@ export interface UserProfile {
     role?: UserRole
     silencedUntil?: Timestamp
     banned?: boolean
+    gender?: string
+    interestedIn?: string
 }
 
 export interface ModerationLog {
@@ -154,16 +156,74 @@ const docToPost = (doc: QueryDocumentSnapshot): Post => {
     }
 }
 
-export async function getPostsByFeed(feedType: string): Promise<Post[]> {
+export async function getPostsByFeed(feedType: string, currentUserProfile?: UserProfile | null): Promise<Post[]> {
     const postsRef = collection(db, "posts")
     let q
 
-    if (feedType === "populares") {
-        q = query(postsRef, orderBy("likes", "desc"), limit(20))
-    } else if (feedType === "nocturnos") {
-        q = query(postsRef, where("feed", "==", "nocturnos"), orderBy("createdAt", "desc"), limit(20))
-    } else {
-        q = query(postsRef, orderBy("createdAt", "desc"), limit(20))
+    switch (feedType) {
+        case "pareja":
+            // Filter by feed=pareja PLUS gender matching
+            if (currentUserProfile?.interestedIn && currentUserProfile.interestedIn !== "everyone") {
+                q = query(
+                    postsRef,
+                    where("feed", "==", "pareja"),
+                    where("gender", "==", currentUserProfile.interestedIn),
+                    orderBy("createdAt", "desc"),
+                    limit(20)
+                )
+            } else {
+                q = query(
+                    postsRef,
+                    where("feed", "==", "pareja"),
+                    orderBy("createdAt", "desc"),
+                    limit(20)
+                )
+            }
+            break
+
+        case "amistad":
+            // Show all feeds EXCEPT nocturno — Firestore doesn't support != well,
+            // so we fetch all non-nocturno by querying feed in [pareja, amistad, maestrisimos, nadiemequiere]
+            q = query(
+                postsRef,
+                where("feed", "in", ["pareja", "amistad", "maestrisimos", "nadiemequiere"]),
+                orderBy("createdAt", "desc"),
+                limit(20)
+            )
+            break
+
+        case "maestrisimos":
+            // Top 100 most liked posts
+            q = query(postsRef, orderBy("likes", "desc"), limit(100))
+            break
+
+        case "nadiemequiere":
+            // Posts with few likes, most recent first
+            q = query(
+                postsRef,
+                where("likes", "<", 100),
+                orderBy("likes", "asc"),
+                orderBy("createdAt", "desc"),
+                limit(20)
+            )
+            break
+
+        case "nocturno":
+            q = query(
+                postsRef,
+                where("feed", "==", "nocturno"),
+                orderBy("createdAt", "desc"),
+                limit(20)
+            )
+            break
+
+        default:
+            q = query(
+                postsRef,
+                orderBy("createdAt", "desc"),
+                limit(20)
+            )
+            break
     }
 
     const snapshot = await getDocs(q)
