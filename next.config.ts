@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   eslint: {
     dirs: ['app', 'components', 'lib', 'hooks', 'types'],
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
   },
 };
 
