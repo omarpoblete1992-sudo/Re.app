@@ -8,8 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { User, Crown, Camera } from "lucide-react"
+import { User, Crown, Camera, Edit2, Check, X } from "lucide-react"
 import Image from "next/image"
+import { updateProfile } from "firebase/auth"
+import { doc, updateDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 export default function ProfilePage() {
     const { user } = useAuth()
@@ -18,6 +21,9 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false)
     const [uploadingPhoto, setUploadingPhoto] = useState(false)
     const [successMsg, setSuccessMsg] = useState("")
+    const [isEditingUsername, setIsEditingUsername] = useState(false)
+    const [newUsername, setNewUsername] = useState("")
+    const [updatingUsername, setUpdatingUsername] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
@@ -60,6 +66,33 @@ export default function ProfilePage() {
             console.error("Error updating profile:", error)
         } finally {
             setSaving(false)
+        }
+    }
+
+    const handleUpdateUsername = async (newName: string) => {
+        if (!user || !profile) return
+        const trimmedName = newName.trim()
+        if (trimmedName.length < 3) {
+            setSuccessMsg("El apodo debe tener al menos 3 caracteres.")
+            setTimeout(() => setSuccessMsg(""), 3000)
+            return
+        }
+
+        setUpdatingUsername(true)
+        try {
+            await updateDoc(doc(db, "users", user.uid), { nickname: trimmedName })
+            await updateProfile(user, { displayName: trimmedName })
+
+            setProfile(prev => prev ? { ...prev, nickname: trimmedName } : null)
+            setIsEditingUsername(false)
+            setSuccessMsg("Apodo actualizado exitosamente.")
+            setTimeout(() => setSuccessMsg(""), 3000)
+        } catch (error) {
+            console.error("Error updating username:", error)
+            setSuccessMsg("Error al actualizar el apodo.")
+            setTimeout(() => setSuccessMsg(""), 3000)
+        } finally {
+            setUpdatingUsername(false)
         }
     }
 
@@ -108,9 +141,52 @@ export default function ProfilePage() {
 
                 <div className="flex-1 text-center md:text-left space-y-2">
                     <div className="flex items-center justify-center md:justify-start gap-3">
-                        <h1 className="text-4xl font-serif font-bold tracking-tight">{profile?.nickname || "Sin apodo"}</h1>
-                        {profile?.likes && profile.likes > 100 && (
-                            <Crown className="w-6 h-6 text-amber-500 animate-bounce" />
+                        {isEditingUsername ? (
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    value={newUsername}
+                                    onChange={(e) => setNewUsername(e.target.value)}
+                                    className="font-serif text-2xl h-10 w-48 font-bold"
+                                    disabled={updatingUsername}
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleUpdateUsername(newUsername);
+                                        if (e.key === 'Escape') setIsEditingUsername(false);
+                                    }}
+                                />
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleUpdateUsername(newUsername)}
+                                    disabled={updatingUsername}
+                                    className="h-8 w-8"
+                                >
+                                    {updatingUsername ? <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /> : <Check className="w-4 h-4 text-green-500" />}
+                                </Button>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => setIsEditingUsername(false)}
+                                    disabled={updatingUsername}
+                                    className="h-8 w-8"
+                                >
+                                    <X className="w-4 h-4 text-red-500" />
+                                </Button>
+                            </div>
+                        ) : (
+                            <>
+                                <h1
+                                    className="text-4xl font-serif font-bold tracking-tight flex items-center gap-2 group cursor-pointer transition-colors hover:text-primary"
+                                    onClick={() => { setIsEditingUsername(true); setNewUsername(profile?.nickname || ""); }}
+                                    title="Editar apodo"
+                                >
+                                    {profile?.nickname || "Sin apodo"}
+                                    <Edit2 className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
+                                </h1>
+                                {profile?.likes && profile.likes > 100 ? (
+                                    <Crown className="w-6 h-6 text-amber-500 animate-bounce" />
+                                ) : null}
+                            </>
                         )}
                     </div>
                     <p className="text-muted-foreground font-light text-lg italic">
