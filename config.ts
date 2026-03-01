@@ -7,7 +7,7 @@ const clientConfig = {
     apiKey: "AIzaSyDBnKWMkXH0inJKh8IW2tdWML9wQjzycHE", // <-- TU API KEY REAL
     authDomain: "reflexion-app-e56d6.firebaseapp.com",
     projectId: "reflexion-app-e56d6",
-    storageBucket: "reflexion-app-e56d6.appspot.com",
+    storageBucket: "reflexion-app-e56d6.firebasestorage.app",
     messagingSenderId: "571213931352",
     appId: "1:571213931352:web:26a1a588d274add6a9bb2d" // <-- TU APP ID REAL
   },

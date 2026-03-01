@@ -162,21 +162,21 @@ export async function getPostsByFeed(feedType: string, currentUserProfile?: User
 
     switch (feedType) {
         case "pareja":
-            // Filter by feed=pareja PLUS gender matching
+            // Filter by feed=pareja PLUS gender matching. Increase limit to allow client-side mutual filtering.
             if (currentUserProfile?.interestedIn && currentUserProfile.interestedIn !== "everyone") {
                 q = query(
                     postsRef,
                     where("feed", "==", "pareja"),
                     where("gender", "==", currentUserProfile.interestedIn),
                     orderBy("createdAt", "desc"),
-                    limit(20)
+                    limit(50)
                 )
             } else {
                 q = query(
                     postsRef,
                     where("feed", "==", "pareja"),
                     orderBy("createdAt", "desc"),
-                    limit(20)
+                    limit(50)
                 )
             }
             break
@@ -233,7 +233,29 @@ export async function getPostsByFeed(feedType: string, currentUserProfile?: User
     }
 
     const snapshot = await getDocs(q)
-    return snapshot.docs.map(docToPost)
+    let posts = snapshot.docs.map(docToPost)
+
+    if (feedType === "pareja" && currentUserProfile) {
+        posts = posts.filter(post => {
+            // If it's the user's own post, include it or not? Usually we include it.
+            if (post.userId === currentUserProfile.uid) return true;
+
+            // 1. Post author must match my interest
+            const myInterest = currentUserProfile.interestedIn;
+            const matchesMyInterest = !myInterest || myInterest === "everyone" || post.gender === myInterest;
+
+            // 2. Post author must be interested in my gender
+            const authorInterest = post.interestedIn;
+            const matchesAuthorInterest = !authorInterest || authorInterest === "everyone" || authorInterest === currentUserProfile.gender;
+
+            return matchesMyInterest && matchesAuthorInterest;
+        });
+
+        // Limit the results after filtering
+        posts = posts.slice(0, 20);
+    }
+
+    return posts
 }
 
 export async function likePost(postId: string) {
