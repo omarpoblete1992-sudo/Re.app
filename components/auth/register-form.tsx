@@ -55,9 +55,14 @@ export function RegisterForm() {
             await signInWithGoogle()
             router.push("/onboarding/soul")
         } catch (err: unknown) {
-            const firebaseError = err as { code?: string }
-            if (firebaseError.code !== "auth/popup-closed-by-user") {
-                setError("Error con Google Sign-In. Intenta de nuevo.")
+            console.error("Google Sign-Up error:", err)
+            if (err instanceof Error && err.message.startsWith("Timeout:")) {
+                setError(err.message)
+            } else {
+                const firebaseError = err as { code?: string }
+                if (firebaseError.code !== "auth/popup-closed-by-user") {
+                    setError("Error con Google Sign-In. Intenta de nuevo.")
+                }
             }
         } finally {
             setIsLoading(false)

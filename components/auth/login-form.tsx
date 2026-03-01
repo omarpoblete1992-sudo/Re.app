@@ -59,9 +59,11 @@ export function LoginForm() {
             router.push("/app/feed?type=pareja")
         } catch (err: unknown) {
             const firebaseError = err as { code?: string; message?: string }
-            console.error("Google Sign-In error:", firebaseError.code, firebaseError.message)
+            console.error("Google Sign-In error:", err)
 
-            if (firebaseError.code === "auth/popup-closed-by-user") {
+            if (err instanceof Error && err.message.startsWith("Timeout:")) {
+                setError(err.message)
+            } else if (firebaseError.code === "auth/popup-closed-by-user") {
                 // User closed the popup, not an error
             } else if (firebaseError.code === "auth/cancelled-popup-request") {
                 // Another popup was already open

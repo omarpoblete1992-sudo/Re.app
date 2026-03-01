@@ -102,9 +102,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const signInWithGoogle = async () => {
-        await signInWithPopup(auth, googleProvider)
-        // La Cloud Function onUserCreated se encarga de crear el perfil
-        // automáticamente en Firestore. El role se lee en onAuthStateChanged.
+        const result = await signInWithPopup(auth, googleProvider)
+        const uid = result.user.uid;
+
+        // Polling para esperar a que onUserCreated (Cloud Function) cree el perfil
+        let attempts = 0;
+        const maxAttempts = 10;
+        while (attempts < maxAttempts) {
+            const userDoc = await getDoc(doc(db, "users", uid));
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                setUserRole((data.role as UserRole) || "user");
+                return;
+            }
+            // Esperar 1 segundo antes del siguiente intento
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
+        }
+
+        // Timeout si la Cloud Function falló o demoró demasiado
+        throw new Error("Timeout: El perfil no se pudo crear a tiempo. Por favor, intenta iniciar sesión nuevamente.");
     }
 
     const logout = async () => {
