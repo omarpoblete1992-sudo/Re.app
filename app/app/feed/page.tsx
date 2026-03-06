@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { cn } from "@/lib/utils"
 import { FeedItem } from "@/components/feed/feed-item"
 import { FeedTabs } from "@/components/feed/feed-tabs"
 import { NocturnoGate } from "@/components/feed/nocturno-gate"
@@ -30,6 +32,10 @@ const tabMeta: Record<string, { title: string; emptyMsg: string }> = {
   nocturno: {
     title: "Nocturno",
     emptyMsg: "La noche está en silencio... por ahora.",
+  },
+  cadaver_exquisito: {
+    title: "Cadáver Exquisito",
+    emptyMsg: "Nadie ha iniciado una historia aún. Escribe el primer fragmento.",
   },
 }
 
@@ -92,7 +98,14 @@ function FeedContent() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <FeedTabs activeTab={type} />
+      <FeedTabs activeTab={type === "cadaver_exquisito" ? "amistad" : type} />
+
+      {(type === "amistad" || type === "cadaver_exquisito") && (
+        <div className="flex gap-4 mb-6 justify-center md:justify-start border-b border-border/30 pb-2">
+          <Link href="/app/feed?type=amistad" className={cn("text-sm transition-colors", type === "amistad" ? "font-bold text-primary" : "text-muted-foreground hover:text-foreground")}>General</Link>
+          <Link href="/app/feed?type=cadaver_exquisito" className={cn("text-sm transition-colors", type === "cadaver_exquisito" ? "font-bold text-primary" : "text-muted-foreground hover:text-foreground")}>Cadáver Exquisito (Historias)</Link>
+        </div>
+      )}
 
       <h1 className="text-3xl font-serif mb-6 text-center md:text-left">
         {meta.title}

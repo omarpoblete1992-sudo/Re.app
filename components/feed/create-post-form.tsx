@@ -12,7 +12,7 @@ import { createPost, getUserProfile, UserProfile, isUserSilenced } from "@/lib/f
 import { useAuth } from "@/lib/auth-context"
 
 const postSchema = z.object({
-    bio: z.string().min(10, "Mínimo 10 caracteres").max(1000, "Máximo 1000 caracteres"),
+    bio: z.string().min(10, "Mínimo 10 caracteres").max(2500, "Máximo 2500 caracteres"),
 })
 
 type PostFormValues = z.infer<typeof postSchema>
@@ -31,6 +31,7 @@ export function CreatePostForm({ feedType, onSuccess }: CreatePostFormProps) {
         register,
         handleSubmit,
         reset,
+        setError,
         formState: { errors, isSubmitting },
     } = useForm<PostFormValues>({
         resolver: zodResolver(postSchema),
@@ -62,6 +63,11 @@ export function CreatePostForm({ feedType, onSuccess }: CreatePostFormProps) {
 
     const onSubmit = async (data: PostFormValues) => {
         if (!user) return
+
+        if (feedType === "cadaver_exquisito" && data.bio.length > 500) {
+            setError("bio", { type: "manual", message: "En Cadáver Exquisito el límite inicial es de 500 caracteres." })
+            return
+        }
         try {
             await createPost({
                 userId: user.uid,
@@ -115,7 +121,7 @@ export function CreatePostForm({ feedType, onSuccess }: CreatePostFormProps) {
                             <label className="text-sm font-medium">Tu Esencia</label>
                             <Textarea
                                 {...register("bio")}
-                                placeholder="Escribe lo que realmente importa. Sin filtros, sin imágenes."
+                                placeholder={feedType === "cadaver_exquisito" ? "Empieza una historia... (máx 500 caracteres)" : "Escribe lo que realmente importa. Sin filtros, sin imágenes."}
                                 className="min-h-[120px] bg-background/50 resize-none"
                             />
                             {errors.bio && (

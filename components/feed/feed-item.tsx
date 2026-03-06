@@ -4,9 +4,10 @@ import * as React from "react"
 import { useState } from "react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Heart, Check, Clock, Crown, ChevronDown, ChevronUp, Trash2, VolumeX } from "lucide-react"
-import { getMaxChars, getRemainingForExpansion } from "@/lib/post-limits"
-import { likePost, createConnection, deleteEssence, silenceUser } from "@/lib/firestore"
+import { Textarea } from "@/components/ui/textarea"
+import { Heart, Check, Clock, Crown, Trash2, VolumeX, Plus } from "lucide-react"
+import { getRemainingForExpansion, canAddContinuation } from "@/lib/post-limits"
+import { likePost, createConnection, deleteEssence, silenceUser, getContinuations, addContinuation, Continuation } from "@/lib/firestore"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 
@@ -34,14 +35,53 @@ export const FeedItem = ({ user, onDeleted }: FeedItemProps) => {
     const [currentLikes, setCurrentLikes] = useState(user.likes ?? 0)
     const [hasLiked, setHasLiked] = useState(false)
     const [modAction, setModAction] = useState<string | null>(null)
+    const [continuations, setContinuations] = useState<Continuation[]>([])
+    const [loadingContinuations, setLoadingContinuations] = useState(true)
+    const [isWritingContinuation, setIsWritingContinuation] = useState(false)
+    const [newContinuationText, setNewContinuationText] = useState("")
+    const [isSubmittingContinuation, setIsSubmittingContinuation] = useState(false)
     const { user: authUser, userRole } = useAuth()
 
     const isMod = userRole === "admin" || userRole === "moderator"
+    const isOwner = authUser?.uid === user.userId
+    const isCadaver = user.feed === "cadaver_exquisito"
 
-    const maxChars = getMaxChars(currentLikes)
-    const needsExpansion = user.bio.length > maxChars
-    const displayBio = expanded ? user.bio : user.bio.slice(0, maxChars)
+    React.useEffect(() => {
+        async function fetchContinuations() {
+            try {
+                const data = await getContinuations(user.id)
+                setContinuations(data)
+            } catch (err) {
+                console.error("Error fetching continuations:", err)
+            } finally {
+                setLoadingContinuations(false)
+            }
+        }
+        fetchContinuations()
+    }, [user.id])
+
+    const canAdd = isCadaver ? true : canAddContinuation(currentLikes, continuations.length)
     const remainingForNext = getRemainingForExpansion(currentLikes)
+
+    const handleAddContinuation = async () => {
+        if (!authUser || !newContinuationText.trim()) return
+        if (!isCadaver && !isOwner) return
+
+        setIsSubmittingContinuation(true)
+        try {
+            await addContinuation(user.id, authUser.uid, authUser.displayName || "Alma Anónima", newContinuationText)
+            setNewContinuationText("")
+            setIsWritingContinuation(false)
+
+            // Refetch continuations
+            const data = await getContinuations(user.id)
+            setContinuations(data)
+        } catch (err) {
+            console.error("Error adding continuation:", err)
+        } finally {
+            setIsSubmittingContinuation(false)
+        }
+    }
 
     const handleLike = async (e: React.MouseEvent) => {
         e.preventDefault()
@@ -146,25 +186,57 @@ export const FeedItem = ({ user, onDeleted }: FeedItemProps) => {
             <CardContent className="pb-4">
                 <div className="relative">
                     <p className="text-base font-light leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                        {displayBio}
-                        {!expanded && needsExpansion && "..."}
+                        {user.bio}
                     </p>
 
-                    {needsExpansion && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setExpanded(!expanded)}
-                            className="h-auto p-0 mt-2 text-xs text-primary hover:text-accent font-medium flex items-center gap-1"
-                        >
-                            {expanded ? (
-                                <>Ver menos <ChevronUp className="w-3 h-3" /></>
-                            ) : (
-                                <>Continuar leyendo <ChevronDown className="w-3 h-3" /></>
-                            )}
-                        </Button>
+                    {continuations.length > 0 && (
+                        <div className="mt-4 space-y-3">
+                            {continuations.map((cont, idx) => (
+                                <div key={cont.id} className="pt-3 border-t border-border/10">
+                                    <p className="text-[15px] font-light leading-relaxed text-foreground/80 whitespace-pre-wrap">
+                                        {cont.text}
+                                    </p>
+                                    {(isCadaver || cont.authorNickname) && (
+                                        <p className="text-[10px] text-muted-foreground mt-1 text-right italic">
+                                            — {cont.authorNickname || "Alma Anónima"}
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
+
+                {authUser && (isCadaver || (isOwner && canAdd)) && !isWritingContinuation && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsWritingContinuation(true)}
+                        className="h-auto p-0 mt-4 text-xs text-primary hover:text-accent font-medium flex items-center gap-1"
+                    >
+                        Añadir continuación <Plus className="w-3 h-3" />
+                    </Button>
+                )}
+
+                {authUser && (isCadaver || (isOwner && canAdd)) && isWritingContinuation && (
+                    <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-2">
+                        <Textarea
+                            placeholder="Añade tu siguiente pensamiento..."
+                            value={newContinuationText}
+                            onChange={(e) => setNewContinuationText(e.target.value.slice(0, 1000))}
+                            className="text-sm bg-background/50 resize-none min-h-[80px]"
+                        />
+                        <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-muted-foreground">{newContinuationText.length}/1000</span>
+                            <div className="flex gap-2">
+                                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setIsWritingContinuation(false)}>Cancelar</Button>
+                                <Button size="sm" className="h-7 text-xs" disabled={isSubmittingContinuation || !newContinuationText.trim()} onClick={handleAddContinuation}>
+                                    {isSubmittingContinuation ? "Añadiendo..." : "Añadir"}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex flex-wrap gap-2 mt-4">
                     {user.authors && (
@@ -219,9 +291,9 @@ export const FeedItem = ({ user, onDeleted }: FeedItemProps) => {
                 )}
             </CardFooter>
 
-            {!expanded && needsExpansion && (
+            {isOwner && !isCadaver && !canAdd && (
                 <div className="px-6 py-1 bg-primary/5 border-t border-primary/10 text-[9px] text-center text-primary/60 font-medium tracking-wide uppercase">
-                    Consigue {remainingForNext} likes más para desbloquear todo el perfil
+                    Consigue {remainingForNext} likes más para desbloquear un fragmento
                 </div>
             )}
         </Card>

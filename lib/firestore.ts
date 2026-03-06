@@ -71,6 +71,15 @@ export interface Post {
     createdAt: Timestamp
 }
 
+export interface Continuation {
+    id: string
+    postId: string
+    authorId: string
+    authorNickname: string
+    text: string
+    createdAt: Timestamp
+}
+
 export interface Connection {
     id: string
     fromUserId: string
@@ -182,11 +191,19 @@ export async function getPostsByFeed(feedType: string, currentUserProfile?: User
             break
 
         case "amistad":
-            // Show all feeds EXCEPT nocturno — Firestore doesn't support != well,
-            // so we fetch all non-nocturno by querying feed in [pareja, amistad, maestrisimos, nadiemequiere]
+            // Show all feeds EXCEPT nocturno and cadaver_exquisito
             q = query(
                 postsRef,
                 where("feed", "in", ["pareja", "amistad", "maestrisimos", "nadiemequiere"]),
+                orderBy("createdAt", "desc"),
+                limit(20)
+            )
+            break
+
+        case "cadaver_exquisito":
+            q = query(
+                postsRef,
+                where("feed", "==", "cadaver_exquisito"),
                 orderBy("createdAt", "desc"),
                 limit(20)
             )
@@ -263,6 +280,29 @@ export async function likePost(postId: string) {
     await updateDoc(postRef, {
         likes: increment(1),
     })
+}
+
+export async function addContinuation(postId: string, authorId: string, authorNickname: string, text: string) {
+    const continuationsRef = collection(db, "posts", postId, "continuations")
+    const newContRef = doc(continuationsRef)
+    await setDoc(newContRef, {
+        postId,
+        authorId,
+        authorNickname,
+        text,
+        createdAt: serverTimestamp(),
+    })
+    return newContRef.id
+}
+
+export async function getContinuations(postId: string): Promise<Continuation[]> {
+    const continuationsRef = collection(db, "posts", postId, "continuations")
+    const q = query(continuationsRef, orderBy("createdAt", "asc"))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    })) as Continuation[]
 }
 
 // ── Connections/Chat ────────────────────────────────────────────────

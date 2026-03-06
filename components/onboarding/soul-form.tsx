@@ -12,7 +12,7 @@ import { saveSoul } from "@/lib/firestore"
 import { useRouter } from "next/navigation"
 
 const SoulSchema = z.object({
-    bioText: z.string().min(10, { message: "Tu esencia necesita al menos 10 caracteres." }).max(500, "Brevedad es el alma del ingenio."),
+    bioText: z.string().min(10, { message: "Tu esencia necesita al menos 10 caracteres." }).max(2500, "Máximo 2500 caracteres para expresar tu esencia."),
     authors: z.string().optional(),
     credo: z.string().max(100, "Un credo debe ser conciso.").optional(),
 })
