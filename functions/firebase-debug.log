@@ -1,0 +1,198 @@
+[debug] [2026-03-05T00:45:07.870Z] ----------------------------------------------------------------------
+[debug] [2026-03-05T00:45:07.875Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\bell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions:onUserCreated --project reflexion-app-e56d6 --debug
+[debug] [2026-03-05T00:45:07.875Z] CLI Version:   15.6.0
+[debug] [2026-03-05T00:45:07.875Z] Platform:      win32
+[debug] [2026-03-05T00:45:07.875Z] Node Version:  v24.13.0
+[debug] [2026-03-05T00:45:07.876Z] Time:          Wed Mar 04 2026 21:45:07 GMT-0300 (hora de verano de Chile)
+[debug] [2026-03-05T00:45:07.876Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-05T00:45:10.563Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-05T00:45:10.565Z] > authorizing via signed-in user (omar.poblete1992@gmail.com)
+[debug] [2026-03-05T00:45:10.567Z] [iam] checking project reflexion-app-e56d6 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-03-05T00:45:10.573Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:10.573Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:10.575Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions [none]
+[debug] [2026-03-05T00:45:10.576Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions  x-goog-user-project=reflexion-app-e56d6
+[debug] [2026-03-05T00:45:10.577Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-03-05T00:45:11.650Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions 200
+[debug] [2026-03-05T00:45:11.652Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-03-05T00:45:11.659Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:11.660Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:11.663Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/reflexion-app-e56d6/serviceAccounts/reflexion-app-e56d6@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-03-05T00:45:11.665Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/reflexion-app-e56d6/serviceAccounts/reflexion-app-e56d6@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-03-05T00:45:13.157Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/reflexion-app-e56d6/serviceAccounts/reflexion-app-e56d6@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-03-05T00:45:13.159Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/reflexion-app-e56d6/serviceAccounts/reflexion-app-e56d6@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'reflexion-app-e56d6'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-03-05T00:45:13.184Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:13.184Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:13.186Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6 [none]
+[debug] [2026-03-05T00:45:13.540Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6 200
+[debug] [2026-03-05T00:45:13.540Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6 {"projectNumber":"571213931352","projectId":"reflexion-app-e56d6","lifecycleState":"ACTIVE","name":"reflexion-app","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-02-18T18:40:10.356294Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-03-05T00:45:13.552Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:13.553Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:13.554Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/reflexion-app-e56d6/adminSdkConfig [none]
+[debug] [2026-03-05T00:45:14.407Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/reflexion-app-e56d6/adminSdkConfig 200
+[debug] [2026-03-05T00:45:14.407Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/reflexion-app-e56d6/adminSdkConfig {"projectId":"reflexion-app-e56d6","storageBucket":"reflexion-app-e56d6.firebasestorage.app"}
+[debug] [2026-03-05T00:45:14.410Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:14.410Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:14.414Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/reflexion-app-e56d6/configs [none]
+[debug] [2026-03-05T00:45:15.160Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/reflexion-app-e56d6/configs 200
+[debug] [2026-03-05T00:45:15.161Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/reflexion-app-e56d6/configs {}
+[debug] [2026-03-05T00:45:15.172Z] Validating nodejs source
+[warn] !  functions: Runtime Node.js 20 will be deprecated on 2026-04-30 and will be decommissioned on 2026-10-30, after which you will not be able to deploy without upgrading. Consider upgrading now to avoid disruption. See https://cloud.google.com/functions/docs/runtime-support for full details on the lifecycle policy 
+[warn] !  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] !  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2026-03-05T00:45:16.574Z] > [functions] package.json contents: {
+  "name": "reflexion-functions",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^13.7.0",
+    "firebase-functions": "^4.9.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "private": true
+}
+[debug] [2026-03-05T00:45:16.578Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[info] i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly 
+[debug] [2026-03-05T00:45:16.581Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-03-05T00:45:16.595Z] Found firebase-functions binary at 'C:\Users\bell\Desktop\Reflexion\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8311
+
+[error] Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './compat/v1' is not defined by "exports" in C:\Users\bell\Desktop\Reflexion\functions\node_modules\firebase-functions\package.json
+    at exportsNotFound (node:internal/modules/esm/resolve:313:10)
+    at packageExportsResolve (node:internal/modules/esm/resolve:661:9)
+    at resolveExports (node:internal/modules/cjs/loader:679:36)
+    at Module._findPath (node:internal/modules/cjs/loader:746:31)
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1406:27)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)
+    at Module._load (node:internal/modules/cjs/loader:1227:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24) {
+  code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'
+}
+
+[debug] [2026-03-05T00:45:17.071Z] Got response code 400; body Failed to generate manifest from function source: Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './compat/v1' is not defined by "exports" in C:\Users\bell\Desktop\Reflexion\functions\node_modules\firebase-functions\package.json
+[error] 
+[error] Error: Functions codebase could not be analyzed successfully. It may have a syntax or runtime error
+[debug] [2026-03-05T00:45:48.518Z] ----------------------------------------------------------------------
+[debug] [2026-03-05T00:45:48.523Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\bell\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions:onUserCreated --project reflexion-app-e56d6 --debug
+[debug] [2026-03-05T00:45:48.523Z] CLI Version:   15.6.0
+[debug] [2026-03-05T00:45:48.524Z] Platform:      win32
+[debug] [2026-03-05T00:45:48.524Z] Node Version:  v24.13.0
+[debug] [2026-03-05T00:45:48.524Z] Time:          Wed Mar 04 2026 21:45:48 GMT-0300 (hora de verano de Chile)
+[debug] [2026-03-05T00:45:48.524Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-05T00:45:51.092Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-05T00:45:51.094Z] > authorizing via signed-in user (omar.poblete1992@gmail.com)
+[debug] [2026-03-05T00:45:51.096Z] [iam] checking project reflexion-app-e56d6 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-03-05T00:45:51.101Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:51.102Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:51.104Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions [none]
+[debug] [2026-03-05T00:45:51.104Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions  x-goog-user-project=reflexion-app-e56d6
+[debug] [2026-03-05T00:45:51.105Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-03-05T00:45:52.054Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions 200
+[debug] [2026-03-05T00:45:52.055Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-03-05T00:45:52.060Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:52.063Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:52.065Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/reflexion-app-e56d6/serviceAccounts/reflexion-app-e56d6@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-03-05T00:45:52.066Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/reflexion-app-e56d6/serviceAccounts/reflexion-app-e56d6@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-03-05T00:45:54.234Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/reflexion-app-e56d6/serviceAccounts/reflexion-app-e56d6@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-03-05T00:45:54.235Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/reflexion-app-e56d6/serviceAccounts/reflexion-app-e56d6@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'reflexion-app-e56d6'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-03-05T00:45:54.282Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:54.283Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:54.285Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6 [none]
+[debug] [2026-03-05T00:45:54.574Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6 200
+[debug] [2026-03-05T00:45:54.575Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/reflexion-app-e56d6 {"projectNumber":"571213931352","projectId":"reflexion-app-e56d6","lifecycleState":"ACTIVE","name":"reflexion-app","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-02-18T18:40:10.356294Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-03-05T00:45:54.591Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:54.592Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:54.593Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/reflexion-app-e56d6/adminSdkConfig [none]
+[debug] [2026-03-05T00:45:55.235Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/reflexion-app-e56d6/adminSdkConfig 200
+[debug] [2026-03-05T00:45:55.236Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/reflexion-app-e56d6/adminSdkConfig {"projectId":"reflexion-app-e56d6","storageBucket":"reflexion-app-e56d6.firebasestorage.app"}
+[debug] [2026-03-05T00:45:55.244Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:55.246Z] Checked if tokens are valid: true, expires at: 1772675020725
+[debug] [2026-03-05T00:45:55.249Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/reflexion-app-e56d6/configs [none]
+[debug] [2026-03-05T00:45:56.442Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/reflexion-app-e56d6/configs 200
+[debug] [2026-03-05T00:45:56.443Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/reflexion-app-e56d6/configs {}
+[debug] [2026-03-05T00:45:56.447Z] Validating nodejs source
+[warn] !  functions: Runtime Node.js 20 will be deprecated on 2026-04-30 and will be decommissioned on 2026-10-30, after which you will not be able to deploy without upgrading. Consider upgrading now to avoid disruption. See https://cloud.google.com/functions/docs/runtime-support for full details on the lifecycle policy 
+[warn] !  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] !  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2026-03-05T00:45:58.114Z] > [functions] package.json contents: {
+  "name": "reflexion-functions",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^13.7.0",
+    "firebase-functions": "^4.9.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "private": true
+}
+[debug] [2026-03-05T00:45:58.118Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[info] i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly 
+[debug] [2026-03-05T00:45:58.121Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-03-05T00:45:58.135Z] Found firebase-functions binary at 'C:\Users\bell\Desktop\Reflexion\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8311
+
+[error] Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './compat/v1' is not defined by "exports" in C:\Users\bell\Desktop\Reflexion\functions\node_modules\firebase-functions\package.json
+    at exportsNotFound (node:internal/modules/esm/resolve:313:10)
+    at packageExportsResolve (node:internal/modules/esm/resolve:661:9)
+    at resolveExports (node:internal/modules/cjs/loader:679:36)
+    at Module._findPath (node:internal/modules/cjs/loader:746:31)
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1406:27)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)
+    at Module._load (node:internal/modules/cjs/loader:1227:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24) {
+  code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'
+}
+
+[debug] [2026-03-05T00:45:58.951Z] Got response code 400; body Failed to generate manifest from function source: Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './compat/v1' is not defined by "exports" in C:\Users\bell\Desktop\Reflexion\functions\node_modules\firebase-functions\package.json
+[error] 
+[error] Error: Functions codebase could not be analyzed successfully. It may have a syntax or runtime error

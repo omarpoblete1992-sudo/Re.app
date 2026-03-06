@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -22,8 +22,25 @@ type SoulSchemaType = z.infer<typeof SoulSchema>
 export function SoulForm() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
-    const { user } = useAuth()
+    const { user, loading } = useAuth()
     const router = useRouter()
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push("/login")
+        }
+    }, [user, loading, router])
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 space-y-4 min-h-[50vh]">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-muted-foreground animate-pulse">Verificando sesión...</p>
+            </div>
+        )
+    }
+
+    if (!user) return null
 
     const {
         register,

@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "userId": {
+            "type": "string"
+        },
+        "nickname": {
+            "type": "string"
+        },
+        "bio": {
+            "type": "string",
+            "minLength": 10
+        },
+        "likes": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "feed": {
+            "enum": [
+                "pareja",
+                "amistad",
+                "maestrísimos",
+                "nadiemequiere",
+                "nocturno"
+            ]
+        },
+        "gender": {
+            "type": "string"
+        },
+        "interestedIn": {
+            "type": "string"
+        },
+        "createdAt": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "userId",
+        "bio",
+        "feed"
+    ]
+}

@@ -1,76 +1,42 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"; }
+    function isModerator() { return exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "moderator"]; }
 
-    // ── Helpers ──────────────────────────────────────────────────────
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
-    }
-
-    function isModerator() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "moderator"];
-    }
-
-    // ── Users ────────────────────────────────────────────────────────
+    // Users - lectura restringida
     match /users/{userId} {
-      // Users can read and write their own document
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-
-      // Admins and moderators can read and write ANY user document
-      allow read, write: if isModerator();
-
-      // Other signed-in users can read basic profile info
-      // (needed for chat list, feed nicknames, etc.)
-      allow read: if isSignedIn();
+      allow read, write: if isOwner(userId) || isModerator();
+      allow read: if isSignedIn() && resource.data.role == "user"; // solo datos básicos para feeds
     }
 
-    // ── Posts ─────────────────────────────────────────────────────────
+    // Posts (esencias)
     match /posts/{postId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && (
-        request.auth.uid == resource.data.userId ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
-      );
-      // Moderators and admins can delete any post
+      allow update: if isOwner(resource.data.userId) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if isModerator();
     }
 
-    // ── Connections ──────────────────────────────────────────────────
+    // Connections + messages (lógica crítica protegida)
     match /connections/{connectionId} {
-      allow read: if isSignedIn() && (
-        resource.data.fromUserId == request.auth.uid ||
-        resource.data.toUserId == request.auth.uid
-      );
+      allow read: if isSignedIn() && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
       allow update: if isSignedIn() && (
-        resource.data.fromUserId == request.auth.uid ||
-        resource.data.toUserId == request.auth.uid
+        (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'interactionCount', 'revealedUsers']) &&
+        request.resource.data.interactionCount >= resource.data.interactionCount // solo permite aumentar
       );
-
-      // Messages subcollection
       match /messages/{messageId} {
-        allow read: if isSignedIn() && (
-          get(/databases/$(database)/documents/connections/$(connectionId)).data.fromUserId == request.auth.uid ||
-          get(/databases/$(database)/documents/connections/$(connectionId)).data.toUserId == request.auth.uid
-        );
-        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+        allow read, create: if isSignedIn() && (get(/databases/$(database)/documents/connections/$(connectionId)).data.fromUserId == request.auth.uid || get(/databases/$(database)/documents/connections/$(connectionId)).data.toUserId == request.auth.uid);
       }
     }
 
-    // ── Moderation Logs ──────────────────────────────────────────────
+    // Moderation
     match /moderation_logs/{logId} {
-      allow read: if isModerator();
-      allow create: if isModerator();
+      allow read, create: if isModerator();
     }
   }
 }

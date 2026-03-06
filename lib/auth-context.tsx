@@ -43,28 +43,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                // Fetch role and ban status from Firestore
                 try {
-                    const userDoc = await getDoc(doc(db, "users", firebaseUser.uid))
-                    if (userDoc.exists()) {
-                        const data = userDoc.data()
+                    const userRef = doc(db, "users", firebaseUser.uid)
+                    let userDoc = await getDoc(userRef)
 
-                        // Check if user is banned
-                        if (data.banned === true) {
-                            await firebaseSignOut(auth)
-                            setUser(null)
-                            setUserRole("user")
-                            setLoading(false)
-                            return
-                        }
-
-                        setUserRole((data.role as UserRole) || "user")
-                    } else {
-                        // El doc podría no existir aún si la Cloud Function está en ejecución.
-                        // Se asigna role "user" por defecto.
-                        setUserRole("user")
+                    if (!userDoc.exists() || !userDoc.data()?.trialEnd) {
+                        await setDoc(userRef, {
+                            uid: firebaseUser.uid,
+                            email: firebaseUser.email || '',
+                            nickname: firebaseUser.displayName || 'Alma Anónima',
+                            photoUrl: firebaseUser.photoURL || '',
+                            role: 'user',
+                            birthDate: '',
+                            gender: '',
+                            interestedIn: '',
+                            banned: false,
+                            trialActive: true,
+                            trialStart: new Date(), // using local timestamp logic as equivalent
+                            trialEnd: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+                            subscriptionActive: false,
+                            subscriptionEnd: null,
+                            firstMutualConnection: false
+                        }, { merge: true })
+                        userDoc = await getDoc(userRef) // re-fetch to have the complete synchronized object
                     }
-                } catch {
+
+                    const data = userDoc.data()!
+                    if (data.banned === true) {
+                        await firebaseSignOut(auth)
+                        setUser(null)
+                        setUserRole("user")
+                        setLoading(false)
+                        return
+                    }
+
+                    setUserRole((data.role as UserRole) || "user")
+                } catch (error) {
+                    console.error("Error setting up user profile in AuthProvider", error);
                     setUserRole("user")
                 }
                 setUser(firebaseUser)
@@ -73,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUserRole("user")
             }
 
-            setLoading(false)
+            setLoading(false) // Esto se ejecuta SOLO DESPUÉS de haber obtenido/escrito el userDoc
         })
         return () => unsubscribe()
     }, [])
@@ -102,26 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const signInWithGoogle = async () => {
-        const result = await signInWithPopup(auth, googleProvider)
-        const uid = result.user.uid;
-
-        // Polling para esperar a que onUserCreated (Cloud Function) cree el perfil
-        let attempts = 0;
-        const maxAttempts = 10;
-        while (attempts < maxAttempts) {
-            const userDoc = await getDoc(doc(db, "users", uid));
-            if (userDoc.exists()) {
-                const data = userDoc.data();
-                setUserRole((data.role as UserRole) || "user");
-                return;
-            }
-            // Esperar 1 segundo antes del siguiente intento
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            attempts++;
-        }
-
-        // Timeout si la Cloud Function falló o demoró demasiado
-        throw new Error("Timeout: El perfil no se pudo crear a tiempo. Por favor, intenta iniciar sesión nuevamente.");
+        await signInWithPopup(auth, googleProvider)
+        // El estado de AuthContext (loading/user) será manejado por onAuthStateChanged automáticamente después del signIn.
     }
 
     const logout = async () => {

@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "fromUserId": {
+            "type": "string"
+        },
+        "toUserId": {
+            "type": "string"
+        },
+        "status": {
+            "enum": [
+                "pending",
+                "matched",
+                "revealed"
+            ]
+        },
+        "interactionCount": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "revealedUsers": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "createdAt": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "fromUserId",
+        "toUserId"
+    ]
+}

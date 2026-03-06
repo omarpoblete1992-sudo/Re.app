@@ -6,8 +6,10 @@ import { RegisterSchema, RegisterSchemaType } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { auth } from "@/lib/firebase"
+import { onAuthStateChanged } from "firebase/auth"
 import { useRouter } from "next/navigation"
 
 export function RegisterForm() {
@@ -15,6 +17,15 @@ export function RegisterForm() {
     const [error, setError] = useState("")
     const { signUp, signInWithGoogle } = useAuth()
     const router = useRouter()
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                router.push("/onboarding/soul")
+            }
+        })
+        return () => unsubscribe()
+    }, [router])
 
     const {
         register,
@@ -33,7 +44,7 @@ export function RegisterForm() {
                 gender: data.gender,
                 interestedIn: data.interestedIn,
             })
-            router.push("/onboarding/soul")
+            // El useEffect redirigirá
         } catch (err: unknown) {
             const firebaseError = err as { code?: string }
             if (firebaseError.code === "auth/email-already-in-use") {
@@ -53,7 +64,7 @@ export function RegisterForm() {
         setError("")
         try {
             await signInWithGoogle()
-            router.push("/onboarding/soul")
+            // NO redirigir aquí manualmente. El useEffect lo hará cuando auth se actualice
         } catch (err: unknown) {
             console.error("Google Sign-Up error:", err)
             if (err instanceof Error && err.message.startsWith("Timeout:")) {

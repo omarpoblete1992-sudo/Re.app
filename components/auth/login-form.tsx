@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
+import { auth } from "@/lib/firebase"
+import { onAuthStateChanged } from "firebase/auth"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
@@ -23,6 +25,15 @@ export function LoginForm() {
     const { signIn, signInWithGoogle } = useAuth()
     const router = useRouter()
 
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                router.push("/app/feed?type=pareja")
+            }
+        })
+        return () => unsubscribe()
+    }, [router])
+
     const {
         register,
         handleSubmit,
@@ -36,7 +47,7 @@ export function LoginForm() {
         setError("")
         try {
             await signIn(data.email, data.password)
-            router.push("/app/feed?type=pareja")
+            // El useEffect redirigirá
         } catch (err: unknown) {
             const firebaseError = err as { code?: string }
             if (firebaseError.code === "auth/invalid-credential") {
@@ -56,7 +67,7 @@ export function LoginForm() {
         setError("")
         try {
             await signInWithGoogle()
-            router.push("/app/feed?type=pareja")
+            // NO redirigir aquí manualmente. El useEffect lo hará cuando auth se actualice
         } catch (err: unknown) {
             const firebaseError = err as { code?: string; message?: string }
             console.error("Google Sign-In error:", err)
