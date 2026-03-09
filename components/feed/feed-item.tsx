@@ -25,6 +25,8 @@ export interface FeedItemProps {
         age?: number
         timeAgo?: string
         feed: string
+        gender?: string
+        interestedIn?: string
     }
     onDeleted?: (postId: string) => void
 }
@@ -134,7 +136,7 @@ export const FeedItem = ({ user, onDeleted }: FeedItemProps) => {
     return (
         <Card className="overflow-hidden border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-serif text-lg tracking-tight group-hover:text-primary transition-colors">
                         {user.nickname}
                     </span>
@@ -142,6 +144,17 @@ export const FeedItem = ({ user, onDeleted }: FeedItemProps) => {
                         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
                             <Crown className="w-2.5 h-2.5" />
                             Top 100
+                        </div>
+                    )}
+                    {process.env.NODE_ENV === "development" && user.feed === "pareja" && (
+                        <div className="flex items-center gap-1 ml-2">
+                            <span className="text-[10px] px-1.5 py-0.5 bg-secondary text-secondary-foreground rounded border border-border">
+                                {user.gender || "?"}
+                            </span>
+                            <span className="text-[10px] opacity-50">→</span>
+                            <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/10 text-blue-500 rounded border border-blue-500/20">
+                                {user.interestedIn || "?"}
+                            </span>
                         </div>
                     )}
                 </div>

@@ -22,25 +22,8 @@ type SoulSchemaType = z.infer<typeof SoulSchema>
 export function SoulForm() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
-    const { user, loading } = useAuth()
+    const { user } = useAuth()
     const router = useRouter()
-
-    useEffect(() => {
-        if (!loading && !user) {
-            router.push("/login")
-        }
-    }, [user, loading, router])
-
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center p-8 space-y-4 min-h-[50vh]">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-muted-foreground animate-pulse">Verificando sesión...</p>
-            </div>
-        )
-    }
-
-    if (!user) return null
 
     const {
         register,
@@ -49,6 +32,8 @@ export function SoulForm() {
     } = useForm<SoulSchemaType>({
         resolver: zodResolver(SoulSchema),
     })
+
+    if (!user) return null
 
     async function onSubmit(data: SoulSchemaType) {
         if (!user) {

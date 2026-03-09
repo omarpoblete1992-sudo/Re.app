@@ -6,16 +6,17 @@ import { FeedItem } from "@/components/feed/feed-item"
 import { FeedTabs } from "@/components/feed/feed-tabs"
 import { NocturnoGate } from "@/components/feed/nocturno-gate"
 import { useSearchParams } from "next/navigation"
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useRef } from "react"
 import { getPostsByFeed, getUserProfile, Post, UserProfile } from "@/lib/firestore"
 import { useAuth } from "@/lib/auth-context"
 import { CreatePostForm } from "@/components/feed/create-post-form"
+import { FeedDebugger } from "@/components/debug/feed-debugger"
 
 // ── Tab titles and empty messages ────────────────────────────────────
 const tabMeta: Record<string, { title: string; emptyMsg: string }> = {
   pareja: {
     title: "Pareja",
-    emptyMsg: "No hay almas complementarias visibles hoy. ¡Sé el primero en publicar!",
+    emptyMsg: "Aún no hay esencias que resonen con tu energía",
   },
   amistad: {
     title: "Amistad — ¿Quién sabe?",
@@ -45,14 +46,36 @@ function FeedContent() {
   const [isGateOpen, setIsGateOpen] = useState(false)
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [lastDoc, setLastDoc] = useState<any>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const seenIdsRef = useRef<Set<string>>(new Set())
   const { user } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const isNocturno = type === "nocturno"
+
+  // Debugging state
+  const [debugProfile, setDebugProfile] = useState<UserProfile | null>(null)
+  const [totalFetched, setTotalFetched] = useState(0)
+  const [totalFiltered, setTotalFiltered] = useState(0)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  const activeProfile = process.env.NODE_ENV === "development" && debugProfile ? debugProfile : profile;
 
   // Fetch user profile for pareja gender matching
   useEffect(() => {
     if (!user) return
     getUserProfile(user.uid).then(p => setProfile(p))
+
+    // Cargar caché de esencias vistas/rechazadas
+    const stored = localStorage.getItem(`seen_${user.uid}`)
+    if (stored) {
+      try {
+        seenIdsRef.current = new Set(JSON.parse(stored))
+      } catch (e) {
+        console.error("Error leyendo vistos locales:", e)
+      }
+    }
   }, [user])
 
   // Reset gate when switching away from nocturno
@@ -63,10 +86,51 @@ function FeedContent() {
   // Fetch posts from Firestore
   useEffect(() => {
     async function fetchPosts() {
+      // Don't fetch if nocturno and gate is closed
+      if (isNocturno && !isGateOpen) {
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
+      setHasMore(true)
+      setTotalFetched(0)
+      setTotalFiltered(0)
       try {
-        const data = await getPostsByFeed(type, profile)
-        setPosts(data)
+        let currentPosts: Post[] = []
+        let currentLastDoc = null
+        let keepTrying = true
+        let fetchedAny = false
+
+        while (keepTrying && currentPosts.length < 10) {
+          const { posts: newPosts, lastDoc: newLastDoc, debugStats } = await getPostsByFeed(type, activeProfile, currentLastDoc)
+          fetchedAny = true
+
+          if (debugStats) {
+            setTotalFetched(prev => prev + debugStats.fetched)
+            setTotalFiltered(prev => prev + debugStats.filtered)
+          }
+
+          // Filter out seen ones
+          const unseen = newPosts.filter(p => !seenIdsRef.current.has(p.id))
+          currentPosts = [...currentPosts, ...unseen]
+          currentLastDoc = newLastDoc
+
+          if (!newLastDoc || newPosts.length < 20) {
+            setHasMore(false)
+            keepTrying = false
+          }
+        }
+
+        // Save to seenIds and localStorage
+        if (currentPosts.length > 0 && user) {
+          currentPosts.forEach(p => seenIdsRef.current.add(p.id))
+          localStorage.setItem(`seen_${user.uid}`, JSON.stringify(Array.from(seenIdsRef.current)))
+        }
+
+        setPosts(currentPosts)
+        setLastDoc(currentLastDoc)
+        if (!fetchedAny) setHasMore(false)
       } catch (err) {
         console.error("Error fetching posts:", err)
         setPosts([])
@@ -75,14 +139,48 @@ function FeedContent() {
       }
     }
 
-    // Don't fetch if nocturno and gate is closed
-    if (isNocturno && !isGateOpen) {
-      setLoading(false)
-      return
-    }
-
     fetchPosts()
-  }, [type, isGateOpen, isNocturno, profile])
+  }, [type, isGateOpen, isNocturno, profile, activeProfile, refreshTrigger])
+
+  const handleLoadMore = async () => {
+    if (!hasMore || loadingMore) return
+    setLoadingMore(true)
+
+    try {
+      let currentPosts: Post[] = []
+      let currentLastDoc = lastDoc
+      let keepTrying = true
+
+      while (keepTrying && currentPosts.length < 10) {
+        const { posts: newPosts, lastDoc: newLastDoc, debugStats } = await getPostsByFeed(type, activeProfile, currentLastDoc)
+
+        if (debugStats) {
+          setTotalFetched(prev => prev + debugStats.fetched)
+          setTotalFiltered(prev => prev + debugStats.filtered)
+        }
+
+        const unseen = newPosts.filter(p => !seenIdsRef.current.has(p.id))
+        currentPosts = [...currentPosts, ...unseen]
+        currentLastDoc = newLastDoc
+
+        if (!newLastDoc || newPosts.length < 20) {
+          setHasMore(false)
+        }
+      }
+
+      if (currentPosts.length > 0 && user) {
+        currentPosts.forEach(p => seenIdsRef.current.add(p.id))
+        localStorage.setItem(`seen_${user.uid}`, JSON.stringify(Array.from(seenIdsRef.current)))
+      }
+
+      setPosts(prev => [...prev, ...currentPosts])
+      setLastDoc(currentLastDoc)
+    } catch (err) {
+      console.error("Error loading more:", err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const meta = tabMeta[type] || { title: "Feed", emptyMsg: "No hay contenido." }
 
@@ -116,15 +214,27 @@ function FeedContent() {
         <CreatePostForm
           feedType={type}
           onSuccess={async () => {
-            const data = await getPostsByFeed(type, profile)
-            setPosts(data)
+            const { posts: newPosts, lastDoc: newLastDoc, debugStats } = await getPostsByFeed(type, activeProfile)
+
+            setTotalFetched(debugStats?.fetched || 0)
+            setTotalFiltered(debugStats?.filtered || 0)
+            setPosts(newPosts)
+            setLastDoc(newLastDoc)
+            setHasMore(newPosts.length >= 20)
           }}
         />
       )}
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground animate-pulse font-serif">
-          Buscando almas...
+          {type === "pareja" ? "Estamos buscando almas compatibles contigo..." : "Buscando almas..."}
+        </div>
+      ) : type === "pareja" && profile && (!profile.gender || !profile.interestedIn) ? (
+        <div className="text-center py-12 text-muted-foreground font-serif">
+          <p className="mb-6">Completa tu perfil para descubrir conexiones compatibles.</p>
+          <Link href="/app/settings" className="mx-auto block w-fit bg-primary hover:opacity-90 transition-opacity text-primary-foreground py-2 px-6 rounded-md text-sm font-medium">
+            Completar Perfil
+          </Link>
         </div>
       ) : (
         <>
@@ -146,11 +256,21 @@ function FeedContent() {
                     ? getTimeAgo(post.createdAt.toDate())
                     : "Recién",
                   feed: post.feed,
+                  gender: post.gender,
+                  interestedIn: post.interestedIn,
                 }}
                 onDeleted={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
               />
             ))}
           </div>
+
+          <FeedDebugger
+            currentProfile={activeProfile}
+            onSimulateProfile={setDebugProfile}
+            totalFetched={totalFetched}
+            totalFiltered={totalFiltered}
+            onRefresh={() => setRefreshTrigger(prev => prev + 1)}
+          />
 
           {posts.length === 0 && (
             <div className="text-center py-12 text-muted-foreground font-serif italic">
@@ -158,7 +278,19 @@ function FeedContent() {
             </div>
           )}
 
-          {posts.length > 0 && (
+          {posts.length > 0 && hasMore && (
+            <div className="mt-8 mb-12 flex justify-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/80 px-6 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {loadingMore ? "Explorando la marea..." : "Cargar más esencias"}
+              </button>
+            </div>
+          )}
+
+          {posts.length > 0 && !hasMore && (
             <div className="mt-12 text-center text-sm text-muted-foreground space-y-1 pb-8">
               <p>Has llegado al final de las almas visibles por hoy.</p>
               <p className="text-xs">Vuelve mañana para más conexiones reales.</p>

@@ -14,7 +14,8 @@ import {
     serverTimestamp,
     Timestamp,
     increment,
-    QueryDocumentSnapshot
+    QueryDocumentSnapshot,
+    startAfter
 } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 
@@ -165,29 +166,28 @@ const docToPost = (doc: QueryDocumentSnapshot): Post => {
     }
 }
 
-export async function getPostsByFeed(feedType: string, currentUserProfile?: UserProfile | null): Promise<Post[]> {
+export interface FeedResult {
+    posts: Post[]
+    lastDoc: QueryDocumentSnapshot | null
+    debugStats?: {
+        fetched: number
+        filtered: number
+    }
+}
+
+export async function getPostsByFeed(feedType: string, currentUserProfile?: UserProfile | null, startAfterDoc?: QueryDocumentSnapshot | null): Promise<FeedResult> {
     const postsRef = collection(db, "posts")
     let q
 
     switch (feedType) {
         case "pareja":
-            // Filter by feed=pareja PLUS gender matching. Increase limit to allow client-side mutual filtering.
-            if (currentUserProfile?.interestedIn && currentUserProfile.interestedIn !== "everyone") {
-                q = query(
-                    postsRef,
-                    where("feed", "==", "pareja"),
-                    where("gender", "==", currentUserProfile.interestedIn),
-                    orderBy("createdAt", "desc"),
-                    limit(50)
-                )
-            } else {
-                q = query(
-                    postsRef,
-                    where("feed", "==", "pareja"),
-                    orderBy("createdAt", "desc"),
-                    limit(50)
-                )
-            }
+            // Paginar en lotes de 20 para mantener el buffer en el cliente
+            q = query(
+                postsRef,
+                where("feed", "==", "pareja"),
+                orderBy("createdAt", "desc"),
+                limit(20)
+            )
             break
 
         case "amistad":
@@ -249,30 +249,51 @@ export async function getPostsByFeed(feedType: string, currentUserProfile?: User
             break
     }
 
+    if (startAfterDoc) {
+        q = query(q, startAfter(startAfterDoc))
+    }
+
     const snapshot = await getDocs(q)
     let posts = snapshot.docs.map(docToPost)
+    const fetchedCount = posts.length;
+    let filteredCount = 0;
+    const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
 
     if (feedType === "pareja" && currentUserProfile) {
         posts = posts.filter(post => {
-            // If it's the user's own post, include it or not? Usually we include it.
-            if (post.userId === currentUserProfile.uid) return true;
+            // Nunca mostrar posts del propio usuario
+            if (post.userId === currentUserProfile.uid) {
+                filteredCount++;
+                return false;
+            }
 
-            // 1. Post author must match my interest
+            // Manejo de legados: Si un post no tiene género o interés, asumimos valores neutros/inclusivos
+            const postGender = post.gender || "no-binario";
+            const postInterest = post.interestedIn || "everyone";
+
+            const myGender = currentUserProfile.gender;
             const myInterest = currentUserProfile.interestedIn;
-            const matchesMyInterest = !myInterest || myInterest === "everyone" || post.gender === myInterest;
 
-            // 2. Post author must be interested in my gender
-            const authorInterest = post.interestedIn;
-            const matchesAuthorInterest = !authorInterest || authorInterest === "everyone" || authorInterest === currentUserProfile.gender;
+            const inclusiveTerms = ["everyone", "todos", "ambos", "cualquiera"];
 
-            return matchesMyInterest && matchesAuthorInterest;
+            // 1. El género del autor del post debe coincidir con lo que YO busco
+            const matchesMyInterest = !myInterest ||
+                inclusiveTerms.includes(myInterest.toLowerCase()) ||
+                postGender === myInterest;
+
+            // 2. El autor del post debe estar interesado en MI género
+            const matchesAuthorInterest = inclusiveTerms.includes(postInterest.toLowerCase()) ||
+                postInterest === myGender;
+
+            const isMatch = matchesMyInterest && matchesAuthorInterest;
+            if (!isMatch) {
+                filteredCount++;
+            }
+            return isMatch;
         });
-
-        // Limit the results after filtering
-        posts = posts.slice(0, 20);
     }
 
-    return posts
+    return { posts, lastDoc, debugStats: { fetched: fetchedCount, filtered: filteredCount } }
 }
 
 export async function likePost(postId: string) {
