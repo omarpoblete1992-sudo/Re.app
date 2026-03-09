@@ -8,15 +8,18 @@ service cloud.firestore {
 
     // Users - lectura restringida
     match /users/{userId} {
-      allow read, write: if isOwner(userId) || isModerator();
-      allow read: if isSignedIn() && resource.data.role == "user"; // solo datos básicos para feeds
+      allow read: if isOwner(userId) || isModerator() || (isSignedIn() && resource.data.role == "user");
+      allow write: if (isOwner(userId) || isModerator()) &&
+        (!('language' in request.resource.data) || request.resource.data.language in ['es', 'en', 'pt', 'fr']);
     }
 
     // Posts (esencias)
     match /posts/{postId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(resource.data.userId) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid &&
+        (!('language' in request.resource.data) || request.resource.data.language in ['es', 'en', 'pt', 'fr']);
+      allow update: if (isOwner(resource.data.userId) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']))) &&
+        (!('language' in request.resource.data) || request.resource.data.language in ['es', 'en', 'pt', 'fr']);
       allow delete: if isModerator();
     }
 

@@ -20,7 +20,7 @@ export function RegisterForm() {
     useEffect(() => {
         if (!initializing && user) {
             setIsRedirecting(true)
-            router.push("/onboarding/soul")
+            router.push("/onboarding/language")
         }
     }, [initializing, user, router])
 

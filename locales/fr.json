@@ -1,0 +1,50 @@
+{
+    "navigation": {
+        "home": "Inicio",
+        "profile": "Perfil",
+        "settings": "Ajustes",
+        "logout": "Cerrar sesión"
+    },
+    "feeds": {
+        "pareja": "Pareja",
+        "amistad": "Amistad",
+        "maestrisimos": "Maestrísimos",
+        "nadiemequiere": "Nadie Me Quiere",
+        "nocturno": "Nocturno",
+        "cadaver_exquisito": "Cadáver Exquisito"
+    },
+    "post": {
+        "create": "Publicar Esencia",
+        "placeholder": "¿Qué siente tu alma hoy?",
+        "submit": "Publicar",
+        "characters_left": "caracteres restantes"
+    },
+    "auth": {
+        "login": "Entrar",
+        "register": "Registrarse",
+        "email": "Correo electrónico",
+        "password": "Contraseña"
+    },
+    "onboarding": {
+        "language_title": "Elige el idioma de tu alma",
+        "language_subtitle": "Tus esencias resonarán en esta frecuencia. Podrás conectar con otros idiomas más adelante.",
+        "continue": "Continuar en",
+        "soul_title": "Configura tu alma",
+        "soul_subtitle": "Cuéntanos quién eres cuando nadie mira."
+    },
+    "profile": {
+        "edit": "Editar Perfil",
+        "save": "Guardar cambios",
+        "language_label": "Idioma de tu Alma",
+        "show_all_languages": "Mostrar esencias de todos los idiomas"
+    },
+    "errors": {
+        "generic": "Algo no salió como esperábamos.",
+        "network": "Revisa tu conexión e intenta otra vez.",
+        "auth_required": "Necesitas iniciar sesión para ver esto."
+    },
+    "marketing": {
+        "tagline": "Donde el alma es lo único que importa",
+        "description_short": "Una plataforma social profunda."
+    }
+}

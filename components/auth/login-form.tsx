@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
+import { getUserProfile } from "@/lib/firestore"
 
 const LoginSchema = z.object({
     email: z.string().email({ message: "Email inválido" }),
@@ -25,10 +26,27 @@ export function LoginForm() {
     const router = useRouter()
 
     useEffect(() => {
-        if (!initializing && user) {
-            setIsRedirecting(true)
-            router.push("/app/feed?type=pareja")
+        let mounted = true
+        async function routeUser() {
+            if (!initializing && user) {
+                if (mounted) setIsRedirecting(true)
+                try {
+                    const profile = await getUserProfile(user.uid)
+                    if (profile && !profile.language) {
+                        if (mounted) router.push("/onboarding/language")
+                    } else if (profile && !profile.bio) {
+                        if (mounted) router.push("/onboarding/soul")
+                    } else {
+                        if (mounted) router.push("/app/feed?type=pareja")
+                    }
+                } catch (err) {
+                    console.error("Error pre-fetching profile for routing:", err)
+                    if (mounted) router.push("/app/feed?type=pareja")
+                }
+            }
         }
+        routeUser()
+        return () => { mounted = false }
     }, [initializing, user, router])
 
     const {

@@ -78,6 +78,7 @@ export function CreatePostForm({ feedType, onSuccess }: CreatePostFormProps) {
                 feed: feedType,
                 gender: profile?.gender,
                 interestedIn: profile?.interestedIn,
+                language: profile?.language,
             })
             reset()
             onSuccess?.()

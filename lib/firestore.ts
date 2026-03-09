@@ -18,6 +18,7 @@ import {
     startAfter
 } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { LanguageCode } from "./i18n/config"
 
 // Umbral de interacciones para revelar fotos mutuamente
 export const INTERACTION_THRESHOLD = 50
@@ -39,6 +40,8 @@ export interface UserProfile {
     banned?: boolean
     gender?: string
     interestedIn?: string
+    language?: LanguageCode
+    showPostsInAllLanguages?: boolean
 }
 
 export interface ModerationLog {
@@ -69,6 +72,7 @@ export interface Post {
     feed: string
     gender?: string
     interestedIn?: string
+    language?: LanguageCode
     createdAt: Timestamp
 }
 
@@ -259,6 +263,22 @@ export async function getPostsByFeed(feedType: string, currentUserProfile?: User
     let filteredCount = 0;
     const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
 
+    // ----- [FILTROS GLOBALES] -----
+
+    // 1. Filtrado de Idioma (Afecta a todos los Feeds)
+    if (currentUserProfile && !currentUserProfile.showPostsInAllLanguages) {
+        posts = posts.filter(post => {
+            // Manejo estricto: Si el post tiene un idioma, DEBE coincidir con el idioma de la app del perfil actual.
+            // Si el post no lo tiene (old db records pre-migracion), lo dejamos pasar como "neutral".
+            const isLanguageMatch = !post.language || !currentUserProfile.language || post.language === currentUserProfile.language;
+            if (!isLanguageMatch) {
+                filteredCount++;
+            }
+            return isLanguageMatch;
+        });
+    }
+
+    // 2. Filtros Específicos del Feed
     if (feedType === "pareja" && currentUserProfile) {
         posts = posts.filter(post => {
             // Nunca mostrar posts del propio usuario

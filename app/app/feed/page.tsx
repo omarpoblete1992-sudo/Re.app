@@ -60,7 +60,15 @@ function FeedContent() {
   const [totalFiltered, setTotalFiltered] = useState(0)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
+  // State to temporarily bypass language filters when hitting an empty feed
+  const [tempShowAllLanguages, setTempShowAllLanguages] = useState(false)
+
   const activeProfile = process.env.NODE_ENV === "development" && debugProfile ? debugProfile : profile;
+  // Apply temporary bypass 
+  const queryProfile = activeProfile ? {
+    ...activeProfile,
+    showPostsInAllLanguages: tempShowAllLanguages ? true : activeProfile.showPostsInAllLanguages
+  } : null;
 
   // Fetch user profile for pareja gender matching
   useEffect(() => {
@@ -103,7 +111,7 @@ function FeedContent() {
         let fetchedAny = false
 
         while (keepTrying && currentPosts.length < 10) {
-          const { posts: newPosts, lastDoc: newLastDoc, debugStats } = await getPostsByFeed(type, activeProfile, currentLastDoc)
+          const { posts: newPosts, lastDoc: newLastDoc, debugStats } = await getPostsByFeed(type, queryProfile, currentLastDoc)
           fetchedAny = true
 
           if (debugStats) {
@@ -273,8 +281,27 @@ function FeedContent() {
           />
 
           {posts.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground font-serif italic">
-              {meta.emptyMsg}
+            <div className="text-center py-12 space-y-4">
+              <p className="text-muted-foreground font-serif italic">
+                {meta.emptyMsg} en este momento.
+              </p>
+
+              {!tempShowAllLanguages && profile && !profile.showPostsInAllLanguages && (
+                <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl max-w-sm mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                  <p className="text-sm">
+                    Es posible que existan esencias esperando por ti en otros idiomas.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setTempShowAllLanguages(true)
+                      setRefreshTrigger(prev => prev + 1)
+                    }}
+                    className="w-full bg-primary/10 hover:bg-primary/20 text-primary transition-colors py-2 rounded-xl text-sm font-semibold"
+                  >
+                    Ver esencias sin importar el idioma
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
